@@ -47,18 +47,19 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 	//Initialize all bits in the bitmap to 0 (free)
 	memset(bitmap, 0, totalBytes); 
 
-	/*Set the bits that we know are going to be occupied. This includes the bits taken by VCB
-	in block 0, as well as blocks needed to store the free space map. Per "steps for milestone 
+	/*Set the bits that we know are going to be occupied. This includes the block taken by 
+	Professor's partition table in block 0, VCB in block 1, as well as blocks needed 
+	to store the free space map. Per "steps for milestone 
 	1 pdf" do not free the bitmap buffer. Keep it in memory and LBAwrite whenever you 
 	manipulate the buffer. */
 	
 	int mapNumBlocks = (totalBytes + blockSize - 1)/(8*blockSize);
 
-	for(int i = 0; i <= mapNumBlocks; i++){
+	for(int i = 0; i <= mapNumBlocks + 1; i++){
 		setBit(bitmap, i);
 	}
 
-	LBAwrite(bitmap, mapNumBlocks, 1);
+	LBAwrite(bitmap, mapNumBlocks, 2);
 
 
 
@@ -82,8 +83,8 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 	//vcb->root_directory_block = ?
 	vcb->fsmap_start_block = 1;
 	vcb->fsmap_end_block = mapNumBlocks;
-	//Next write vcb to disk at block 0
-	LBAwrite(vcb, 1, 0);
+	//Next write vcb to disk at block 1
+	LBAwrite(vcb, 1, 1);
 
 
 	return 0;
@@ -104,7 +105,7 @@ void clearBit(uint8_t bitmap[], int blockNumber) {
 }
 
 //Function to check if a block is 1 (used). Returns 1 if block (bit) is being used.
-int isBitUsed(uint8_t bitmap[], int blockNumber) {
+int isBlockUsed(uint8_t bitmap[], int blockNumber) {
     int byteIndex = blockNumber / 8;
     int bitIndex = blockNumber % 8;
     return (bitmap[byteIndex] & (1 << bitIndex)) != 0;
