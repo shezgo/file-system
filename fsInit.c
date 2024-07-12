@@ -53,7 +53,7 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 	{
 	printf ("Initializing File System with %ld blocks with a block size of %ld\n", numberOfBlocks, blockSize);
 	/* TODO: Add any code you need to initialize your file system. */
-	//printf("Size of DE:%ld", sizeof(DirectoryEntry));
+	printf("Size of DE:%ld", sizeof(DirectoryEntry));
 	//This error check guarantees that the vcb can fit in block 0.
     if (blockSize < sizeof(VolumeControlBlock)) {
         fprintf(stderr, "Error: Block size (%ld) is less than sizeof(VolumeControlBlock) (%ld)\n",
@@ -92,7 +92,48 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 	/* Next initialize and write the vcb to disk. Store vcb using malloc
 	and pass to LBAwrite. Do we free this buffer? The only modifiable variable is free_blocks
 	*/
-	
+
+    DirectoryEntry *root = (DirectoryEntry *)malloc(sizeof(DirectoryEntry));
+    if (!root) {
+        fprintf(stderr, "Failed to allocate memory for DirectoryEntry\n");
+        return EXIT_FAILURE;
+    }
+
+	    // Initialize the name and other fields
+    strcpy(root->name, "/");
+    root->LBAlocation = 0;
+
+	// Declare a time_t variable to store the current time
+    time_t currentTime = time(NULL);
+
+    // Check if getting the time was successful
+    if (currentTime == (time_t)-1) {
+        fprintf(stderr, "Failed to get the current time\n");
+        return 1;
+    }
+    root->timeCreation = currentTime;
+    root->lastAccessed = currentTime;
+    root->lastModified = currentTime;
+    root->isDirectory = 1;
+	root->size = sizeof(root);
+
+	// Initialize the array of directory
+    for (int i = 0; i < root->numDE; ++i) {
+        root->de[i] = NULL; // Initialize pointers to NULL
+    }
+
+	// Optionally, allocate and initialize entries for "." and ".."
+    root->de[0] = root; // "." points to itself
+    root->de[1] = root; // ".." also points to itself for the root directory
+
+	//Assign root to a block
+	//LBAwrite root to that block
+	//Calculate number of blocks needed for root
+	//**PICKUP LBAwrite(root, )
+	//update the bitmap to occupy that block
+	//Store root block location in vcb
+	//Free root
+
 	//First initialize the vcb
 	VolumeControlBlock *vcb;
 
@@ -111,6 +152,7 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 	vcb->fsmap_end_block = mapNumBlocks + 1;
 	//Next write vcb to disk at block 1
 	LBAwrite(vcb, 1, 0);
+	free(vcb);
 
 //block_size/sizeOf(DirectoryEntry)
 
