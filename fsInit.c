@@ -24,15 +24,36 @@
 
 #include "fsLow.h"
 #include "mfs.h"
-#include "directory_entry.c"
-#include "volume_control_block.c"
+#include "directory_entry.h"
+#include "volume_control_block.h"
 
+
+//Function to set a bit (mark block as used)
+void setBit(uint8_t bitmap[], int blockNumber) {
+    int byteIndex = blockNumber / 8;
+    int bitIndex = blockNumber % 8;
+    bitmap[byteIndex] |= (1 << bitIndex);
+}
+	
+//Function to clear a bit (mark block as free)
+void clearBit(uint8_t bitmap[], int blockNumber) {
+    int byteIndex = blockNumber / 8;
+    int bitIndex = blockNumber % 8;
+    bitmap[byteIndex] &= ~(1 << bitIndex);
+}
+
+//Function to check if a block is 1 (used). Returns 1 if block (bit) is being used.
+int isBitUsed(uint8_t bitmap[], int blockNumber) {
+    int byteIndex = blockNumber / 8;
+    int bitIndex = blockNumber % 8;
+    return (bitmap[byteIndex] & (1 << bitIndex)) != 0;
+}
 
 int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 	{
 	printf ("Initializing File System with %ld blocks with a block size of %ld\n", numberOfBlocks, blockSize);
 	/* TODO: Add any code you need to initialize your file system. */
-
+	//printf("Size of DE:%ld", sizeof(DirectoryEntry));
 	//This error check guarantees that the vcb can fit in block 0.
     if (blockSize < sizeof(VolumeControlBlock)) {
         fprintf(stderr, "Error: Block size (%ld) is less than sizeof(VolumeControlBlock) (%ld)\n",
@@ -40,9 +61,13 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
         exit(EXIT_FAILURE);
     }
 
-	//Allocate the size dynamically.
+	//Allocate the size
 	int totalBytes = numberOfBlocks * blockSize;
-	uint8_t bitmap[totalBytes];
+	uint8_t *bitmap = (uint8_t *)malloc(totalBytes);
+    if (bitmap == NULL) {
+        fprintf(stderr, "Failed to allocate memory for bitmap\n");
+        exit(EXIT_FAILURE);
+    }
 
 	//Initialize all bits in the bitmap to 0 (free)
 	memset(bitmap, 0, totalBytes); 
@@ -55,11 +80,12 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 	
 	int mapNumBlocks = (totalBytes + blockSize - 1)/(8*blockSize);
 
-	for(int i = 0; i <= mapNumBlocks + 1; i++){
+	for(int i = 0; i <= mapNumBlocks ; i++){
 		setBit(bitmap, i);
 	}
 
-	LBAwrite(bitmap, mapNumBlocks, 2);
+	//This just writes the free space map to disk
+	LBAwrite(bitmap, mapNumBlocks, 1);
 
 
 
@@ -78,38 +104,20 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 
 	vcb->block_size = blockSize;
 	vcb->total_blocks = numberOfBlocks;
-	vcb->free_blocks = numberOfBlocks - mapNumBlocks - 1;
+	vcb->free_blocks = numberOfBlocks - mapNumBlocks - 1;//need to edit once root directory set
 	vcb->signature = 0x1A; //8 bit hex number, max value 255 or 0xFF
 	//vcb->root_directory_block = ?
 	vcb->fsmap_start_block = 1;
-	vcb->fsmap_end_block = mapNumBlocks;
+	vcb->fsmap_end_block = mapNumBlocks + 1;
 	//Next write vcb to disk at block 1
-	LBAwrite(vcb, 1, 1);
+	LBAwrite(vcb, 1, 0);
 
+//block_size/sizeOf(DirectoryEntry)
 
 	return 0;
 	}
 
-//Function to set a bit (mark block as used)
-void setBit(uint8_t bitmap[], int blockNumber) {
-    int byteIndex = blockNumber / 8;
-    int bitIndex = blockNumber % 8;
-    bitmap[byteIndex] |= (1 << bitIndex);
-}
-	
-//Function to clear a bit (mark block as free)
-void clearBit(uint8_t bitmap[], int blockNumber) {
-    int byteIndex = blockNumber / 8;
-    int bitIndex = blockNumber % 8;
-    bitmap[byteIndex] &= ~(1 << bitIndex);
-}
 
-//Function to check if a block is 1 (used). Returns 1 if block (bit) is being used.
-int isBlockUsed(uint8_t bitmap[], int blockNumber) {
-    int byteIndex = blockNumber / 8;
-    int bitIndex = blockNumber % 8;
-    return (bitmap[byteIndex] & (1 << bitIndex)) != 0;
-}
 	
 void exitFileSystem ()
 	{
