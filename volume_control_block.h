@@ -1,3 +1,19 @@
+/**************************************************************
+ * Class::  CSC-415-01 Summer 2024
+ * Name:: Shez Rahman, Austin Kuykendall, Robel Ayelew, Awet Fikadu
+ * Student IDs:: 916867424, 920222066, 922419937, 922130310
+ * GitHub-Name:: shezgo
+ * Group-Name:: Spork
+ * Project:: Basic File System
+ *
+ * File:: volume_control_block.h
+ *
+ * Description:: Holds VolumeControlBlock struct
+ *
+ * 
+ *
+ **************************************************************/
+
 #include <stdint.h>
 #ifndef _VOLUME_CONTROL_BLOCK_H
 #define _VOLUME_CONTROL_BLOCK_H
