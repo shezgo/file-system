@@ -135,6 +135,7 @@ uint8_t initRoot(uint8_t *bitmap){
     dotdot->size = sizeof(DirectoryEntry);
     addDirectoryEntry(root, dotdot);
 
+	printf("size of root:%ld", sizeof(root));
 	// Write the root directory to disk
     LBAwrite(root, 1, rootBlock);
 	setBit(bitmap, rootBlock);
