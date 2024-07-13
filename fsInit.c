@@ -135,7 +135,7 @@ uint8_t initRoot(uint8_t *bitmap){
     dotdot->size = sizeof(DirectoryEntry);
     addDirectoryEntry(root, dotdot);
 
-	printf("size of root:%ld", sizeof(root));
+	printf("From fsInit: size of root:%ld\n", sizeof(root));
 	// Write the root directory to disk
     LBAwrite(root, 1, rootBlock);
 	setBit(bitmap, rootBlock);
@@ -166,7 +166,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	printf("Initializing File System with %ld blocks with a block size of %ld\n", numberOfBlocks, 
 	blockSize);
 	/* TODO: Add any code you need to initialize your file system. */
-	printf("Size of DE:%ld", sizeof(DirectoryEntry));
+	printf("From fsInit: Size of DE:%ld\n", sizeof(DirectoryEntry));
 	// This error check guarantees that the vcb can fit in block 0.
 	if (blockSize < sizeof(VolumeControlBlock))
 	{
@@ -207,8 +207,8 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 	//Initialize the root directory and LBAwrite it to disk.
 	uint8_t rootBlock = initRoot(bitmap);
-	printf("mapNumBlocks is at %d", mapNumBlocks);
-	printf("rootBlock is at %d", rootBlock);
+	printf("From fsInit: mapNumBlocks is at %d\n", mapNumBlocks);
+	printf("From fsInit: rootBlock is at %d\n", rootBlock);
 
 	vcb->block_size = blockSize;
 	vcb->total_blocks = numberOfBlocks;
