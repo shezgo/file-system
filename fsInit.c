@@ -26,58 +26,12 @@
 #include "directory_entry.h"
 #include "directory.c"
 #include "volume_control_block.h"
+#include "bitmap.c"
 
 uint8_t magicNumber;
 VolumeControlBlock *vcb;
 int mapNumBlocks; //used to store number of blocks needed for bitmap for easy LBA write
 int totalBytes; //used to check bitmap for free space
-
-void mapToDisk(uint8_t *bitmap){
-	LBAwrite(bitmap, mapNumBlocks, 1);
-	return;
-}
-
-// Function to set a bit (mark block as used)
-void setBit(uint8_t *bitmap, int blockNumber)
-{
-	int byteIndex = blockNumber / 8;
-	int bitIndex = blockNumber % 8;
-	bitmap[byteIndex] |= (1 << bitIndex);
-	return;
-}
-
-// Function to clear a bit (mark block as free)
-void clearBit(uint8_t *bitmap, int blockNumber)
-{
-	int byteIndex = blockNumber / 8;
-	int bitIndex = blockNumber % 8;
-	bitmap[byteIndex] &= ~(1 << bitIndex);
-	return;
-}
-
-// Function to check if a block is 1 (used). Returns 1 if block (bit) is being used.
-int isBitUsed(uint8_t *bitmap, int blockNumber)
-{
-	int byteIndex = blockNumber / 8;
-	int bitIndex = blockNumber % 8;
-	return (bitmap[byteIndex] & (1 << bitIndex)) != 0;
-}
-
-uint8_t firstFreeBit(uint8_t *bitmap)
-{
-	    for (int byteIndex = 0; byteIndex < totalBytes; byteIndex++) {
-        // If the byte is not all 1s, there's a free bit in it
-        if (bitmap[byteIndex] != 0xFF) {
-            for (int bitIndex = 0; bitIndex < 8; bitIndex++) {
-                if ((bitmap[byteIndex] & (1 << bitIndex)) == 0) {
-                    return (byteIndex * 8 + bitIndex);
-                }
-            }
-        }
-    }
-	//If there are no free bits
-    return -1;
-}
 
 //Initialize the root directory with the . and .. directory entries inside of it, then
 //return the LBA block root is written to.
@@ -150,7 +104,16 @@ uint8_t initRoot(uint8_t *bitmap){
 
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 {
+	// This error check guarantees that the vcb can fit in block 0.
+	if (blockSize < sizeof(VolumeControlBlock))
+	{
+		fprintf(stderr, "Error: Block size (%ld) is less than sizeof(VolumeControlBlock) (%ld)\n",
+				blockSize, sizeof(VolumeControlBlock));
+		exit(EXIT_FAILURE);
+	}
+
 	vcb = (VolumeControlBlock *)malloc(sizeof(VolumeControlBlock));
+
 	if (vcb == NULL)
 	{
 		fprintf(stderr, "Failed to allocate memory for VCB\n");
@@ -166,44 +129,10 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	printf("Initializing File System with %ld blocks with a block size of %ld\n", numberOfBlocks, 
 	blockSize);
 	/* TODO: Add any code you need to initialize your file system. */
+
 	printf("From fsInit: Size of DE:%ld\n", sizeof(DirectoryEntry));
-	// This error check guarantees that the vcb can fit in block 0.
-	if (blockSize < sizeof(VolumeControlBlock))
-	{
-		fprintf(stderr, "Error: Block size (%ld) is less than sizeof(VolumeControlBlock) (%ld)\n",
-				blockSize, sizeof(VolumeControlBlock));
-		exit(EXIT_FAILURE);
-	}
 
-	// Allocate the size
-	totalBytes = numberOfBlocks * blockSize;
-	uint8_t *bitmap = (uint8_t *)malloc(totalBytes);
-	if (bitmap == NULL)
-	{
-		fprintf(stderr, "Failed to allocate memory for bitmap\n");
-		exit(EXIT_FAILURE);
-	}
-
-	// Initialize all bits in the bitmap to 0 (free)
-	for(int i = 0; i < totalBytes; i ++){
-		bitmap[i] = 0;
-	}
-
-	/*Set the bits that we know are going to be occupied. This includes the VCB in logical block 0,
-	but physical block 0 contains Professor's partition table. Also set blocks needed
-	to store the free space map. 
-	Per "steps for milestone 1 pdf" do not free the bitmap buffer. Keep it in memory and 
-	LBAwrite whenever you manipulate the buffer. */
-
-	mapNumBlocks = (totalBytes + blockSize - 1) / (8 * blockSize);
-
-	for (int i = 0; i <= mapNumBlocks; i++)
-	{
-		setBit(bitmap, i);
-	}
-
-	// LBAwrite the bitmap at correct locations
-	mapToDisk(bitmap);
+	Bitmap* bitmap = initBitmap(vcb, numberOfBlocks, blockSize);
 
 	//Initialize the root directory and LBAwrite it to disk.
 	uint8_t rootBlock = initRoot(bitmap);
