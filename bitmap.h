@@ -26,7 +26,7 @@ int fsAlloc(Bitmap *bm, int req);
 //To be implemented
 int fsRelease(Bitmap* bm, int startBlock, int count);
 //Initialize the bitmap
-Bitmap *initBitmap(VolumeControlBlock *vcb, int fsNumBlocks, int blockSize);
+Bitmap *initBitmap(int fsNumBlocks, int blockSize);
 
 
 

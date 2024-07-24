@@ -8,14 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct Bitmap
-{
-    uint8_t *bitmap;
-    uint32_t mapNumBlocks; // number of blocks used to store the bitmap
-    uint32_t fsNumBlocks;  // number of blocks in entire Volume
-    uint32_t bitmapSize;   // size of the bitmap that *bitmap points to
-} Bitmap;
-
 // Function to LBAwrite the freespace bitmap
 void mapToDisk(Bitmap *bm)
 {
@@ -25,6 +17,7 @@ void mapToDisk(Bitmap *bm)
 // Function to set a bit (mark block as used)
 int setBit(Bitmap *bm, int blockNumber)
 {
+    printf("From bitmap.c->setBit: setting blockNumber: %d\n", blockNumber);
     if (blockNumber < bm->fsNumBlocks)
     {
         int byteIndex = blockNumber / 8;
@@ -108,6 +101,11 @@ int fsAlloc(Bitmap *bm, int req)
                     // If we found a successful sequence
                     if (consecutiveFreeBlocks == req)
                     {
+                        for(int i = startBlock; i < startBlock + req; i++)
+                        {
+                            printf("From bitmap.c->fsAlloc: setting bit: %d\n", i);
+                            setBit(bm,i); //mark the blocks as used for the space requester
+                        }
                         return startBlock;
                     }
                 }
@@ -143,7 +141,7 @@ int fsRelease(Bitmap* bm, int startBlock, int count)
     return 0;
 }
 
-Bitmap *initBitmap(VolumeControlBlock *vcb, int fsNumBlocks, int blockSize)
+Bitmap *initBitmap(int fsNumBlocks, int blockSize)
 {
     // Allocate and initialize the memory for the Bitmap struct
     Bitmap *bm = (Bitmap *)malloc(sizeof(Bitmap));
@@ -161,6 +159,7 @@ Bitmap *initBitmap(VolumeControlBlock *vcb, int fsNumBlocks, int blockSize)
     if (bm->bitmap == NULL)
     {
         fprintf(stderr, "Failed to allocate memory for bitmap\n");
+        free(bm);
         exit(EXIT_FAILURE);
     }
     bm->bitmapSize = bitsToBytes;
@@ -178,6 +177,7 @@ Bitmap *initBitmap(VolumeControlBlock *vcb, int fsNumBlocks, int blockSize)
     LBAwrite whenever you manipulate the buffer. */
 
     bm->mapNumBlocks = (bitsToBytes + blockSize - 1) / blockSize;
+    printf("From directory_entry.h-> initBitmap: mapNumBlocks:%d\n", bm->mapNumBlocks);
 
     for (int i = 0; i <= bm->mapNumBlocks; i++)
     {

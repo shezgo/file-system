@@ -24,83 +24,15 @@
 #include "fsLow.h"
 #include "mfs.h"
 #include "directory_entry.h"
-#include "directory.c"
 #include "volume_control_block.h"
 #include "bitmap.c"
+
+#define MIN_ENTRIES 50
 
 uint8_t magicNumber;
 VolumeControlBlock *vcb;
 int mapNumBlocks; //used to store number of blocks needed for bitmap for easy LBA write
 int totalBytes; //used to check bitmap for free space
-
-//Initialize the root directory with the . and .. directory entries inside of it, then
-//return the LBA block root is written to.
-uint8_t initRoot(uint8_t *bitmap){
-    Directory *root = (Directory *)malloc(sizeof(Directory));
-    if (root == NULL)
-    {
-        fprintf(stderr, "Error: Failed to allocate memory for root directory.\n");
-        return -1;
-    }
-
-    initDirectory(root);
-
-
-    uint8_t rootBlock = firstFreeBit(bitmap);
-    if (rootBlock == -1)
-    {
-        fprintf(stderr, "Error: No free block available for the root directory.\n");
-        free(root); // Free the allocated memory before returning
-        return -1;
-    }
-
-    // Allocate and initialize the "." directory entry
-    DirectoryEntry *dot = (DirectoryEntry *)malloc(sizeof(DirectoryEntry));
-    if (dot == NULL)
-    {
-        fprintf(stderr, "Error: Failed to allocate memory for '.' directory entry.\n");
-        free(root);
-        return -1;
-    }
-	strncpy(dot->name, ".", NAME);
-	dot->timeCreation = time(NULL);
-	dot->lastAccessed = dot->timeCreation;
-	dot->lastModified = dot->timeCreation;
-	dot->isDirectory = 1; // Set to 1 because it points to self, a directory.
-	dot->LBAlocation = rootBlock;
-	dot->size = sizeof(DirectoryEntry);
-	addDirectoryEntry(root, dot);
-
-	// Allocate and initialize the ".." directory entry
-    DirectoryEntry *dotdot = (DirectoryEntry *)malloc(sizeof(DirectoryEntry));
-    if (dotdot == NULL)
-    {
-        fprintf(stderr, "Error: Failed to allocate memory for '..' directory entry.\n");
-        free(dot);
-        free(root);
-        return -1;
-    }
-    strncpy(dotdot->name, "..", NAME);
-    dotdot->timeCreation = time(NULL);
-    dotdot->lastAccessed = dotdot->timeCreation;
-    dotdot->lastModified = dotdot->timeCreation;
-    dotdot->isDirectory = 1; // Set to 1 because it points to self, a directory.
-    dotdot->LBAlocation = rootBlock;
-    dotdot->size = sizeof(DirectoryEntry);
-    addDirectoryEntry(root, dotdot);
-
-	printf("From fsInit: size of root:%ld\n", sizeof(root));
-	// Write the root directory to disk
-    LBAwrite(root, 1, rootBlock);
-	setBit(bitmap, rootBlock);
-
-    // Free the allocated memory
-    free(dotdot);
-    free(dot);
-    free(root);
-
-	return rootBlock;
-}
 
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 {
@@ -128,28 +60,26 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 	printf("Initializing File System with %ld blocks with a block size of %ld\n", numberOfBlocks, 
 	blockSize);
-	/* TODO: Add any code you need to initialize your file system. */
 
-	printf("From fsInit: Size of DE:%ld\n", sizeof(DirectoryEntry));
+	printf("From fsInit: Size of DE:%ld\n", sizeof(DE));
 
-	Bitmap* bitmap = initBitmap(vcb, numberOfBlocks, blockSize);
-
-	//Initialize the root directory and LBAwrite it to disk.
-	uint8_t rootBlock = initRoot(bitmap);
-	printf("From fsInit: mapNumBlocks is at %d\n", mapNumBlocks);
-	printf("From fsInit: rootBlock is at %d\n", rootBlock);
+	Bitmap* bitmap = initBitmap(numberOfBlocks, blockSize);
+	mapNumBlocks = bitmap->mapNumBlocks;
 
 	vcb->block_size = blockSize;
 	vcb->total_blocks = numberOfBlocks;
 	vcb->free_blocks = numberOfBlocks - mapNumBlocks - 2; // subtract blocks for bitmap, vcb, root
 	vcb->signature = 0x1A; // This is an arbitrary number to check if already initialized
-	vcb->root_directory_block = rootBlock;
 	vcb->fsmap_start_block = 1;
 	vcb->fsmap_end_block = mapNumBlocks + 1;
+
+	printf("From fsInit: Size of vcb:%ld\n", sizeof(vcb));
+
+	//Initialize the root directory and LBAwrite it to disk. VCB root_start_block gets initialized
+	//in the initDir function, so LBAwrite vcb must happen after.
+	DE * root = initDir(MIN_ENTRIES, NULL, vcb, bitmap);
 	LBAwrite(vcb, 1, 0);
 	free(vcb);
-
-
 
 	return 0;
 }
