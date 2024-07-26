@@ -152,20 +152,23 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize)
     }
 
     // Allocate the size for bitmap - Convert the num bytes to num bits for bitmap malloc
-    int bitsToBytes = (fsNumBlocks + 7) / 8;
-
+    int blocksToBitsInBytes = (fsNumBlocks + 7) / 8;
+    
     bm->fsNumBlocks = fsNumBlocks;
-    bm->bitmap = (uint8_t *)malloc(bitsToBytes);
+    //Below operation works because of int division.
+    int roundedBytes = ((blocksToBitsInBytes + blockSize - 1)/ blockSize) * blockSize;
+    printf("BITMAP.C>initBitmap: roundedBytes: %d\n", roundedBytes);
+    bm->bitmap = (uint8_t *)malloc(roundedBytes);
     if (bm->bitmap == NULL)
     {
         fprintf(stderr, "Failed to allocate memory for bitmap\n");
         free(bm);
         exit(EXIT_FAILURE);
     }
-    bm->bitmapSize = bitsToBytes;
+    bm->bitmapSize = blocksToBitsInBytes;
 
     // Initialize all bits in the bitmap to 0 (free)
-    for (int i = 0; i < bitsToBytes; i++)
+    for (int i = 0; i < roundedBytes; i++)
     {
         bm->bitmap[i] = 0;
     }
@@ -176,7 +179,7 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize)
     Per "steps for milestone 1 pdf" do not free the bitmap buffer. Keep it in memory and
     LBAwrite whenever you manipulate the buffer. */
 
-    bm->mapNumBlocks = (bitsToBytes + blockSize - 1) / blockSize;
+    bm->mapNumBlocks = (blocksToBitsInBytes + blockSize - 1) / blockSize;
     printf("From directory_entry.h-> initBitmap: mapNumBlocks:%d\n", bm->mapNumBlocks);
 
     for (int i = 0; i <= bm->mapNumBlocks; i++)

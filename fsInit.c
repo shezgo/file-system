@@ -44,7 +44,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		exit(EXIT_FAILURE);
 	}
 
-	vcb = (VolumeControlBlock *)malloc(sizeof(VolumeControlBlock));
+	vcb = (VolumeControlBlock *)malloc(blockSize);
 
 	if (vcb == NULL)
 	{
@@ -62,7 +62,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	blockSize);
 
 	printf("From fsInit: Size of DE:%ld\n", sizeof(DE));
-
+	printf("From fsInit: NUMBEROFBLOCKS:%ld BLOCKSIZE:%ld", numberOfBlocks, blockSize);
 	Bitmap* bitmap = initBitmap(numberOfBlocks, blockSize);
 	mapNumBlocks = bitmap->mapNumBlocks;
 
