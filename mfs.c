@@ -226,7 +226,7 @@ int parsePath(char *path, ppinfo *ppi)
 //*************************************************************************************************
 
 // Make a directory; return -1 if fails, 2 if directory already exists, 0 if success.
-int mkdir(char *path, mode_t mode)
+int fs_mkdir(char *path, mode_t mode)
 {
     ppinfo ppi;
     int parseFlag = parsePath(path, &ppi);
