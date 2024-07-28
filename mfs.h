@@ -100,6 +100,8 @@ int findNameInDir(DE *parent, char* name); //returns index of DE in parent if fo
 DE * loadDir(DE *dir); //loads a directory into memory
 int entryIsDir(DE *parent, int deIndex); // Checks if the DE in parent is a directory.
 int freeIfNotNeedDir(DE *dir); //Frees a dir only if not cwd, root, or null 
+int findUnusedDE(DE *parent); //Find the first unused DE in a parent
+DE *saveDir(DE *directory); // Writes an existing directory to disk
 
 // This is the strucutre that is filled in from a call to fs_stat
 struct fs_stat

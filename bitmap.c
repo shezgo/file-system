@@ -9,7 +9,7 @@ void mapToDisk(Bitmap *bm)
     LBAwrite(bm->bitmap, bm->mapNumBlocks, 1);
     return;
 }
-// Function to set a bit (mark block as used)
+// Function to set a bit (mark block as used). Returns 1 if success, -1 if failure.
 int setBit(Bitmap *bm, int blockNumber)
 {
     printf("From bitmap.c->setBit: setting blockNumber: %d\n", blockNumber);
@@ -27,7 +27,7 @@ int setBit(Bitmap *bm, int blockNumber)
         return -1;
     }
 }
-// Function to clear a bit (mark block as free)
+// Function to clear a bit (mark block as free). Returns 1 if success, -1 if failure.
 int clearBit(Bitmap *bm, int blockNumber)
 {
     if (blockNumber < bm->fsNumBlocks)
@@ -130,10 +130,40 @@ int fsAlloc(Bitmap *bm, int req)
     return -1;
 }
 
-//To be implemented
+//Return 1 if successful, -1 if failed
 int fsRelease(Bitmap* bm, int startBlock, int count)
 {
-    return 0;
+    /*
+    Make sure params are valid
+    Set the bits in the bm to being free. Anything else?
+    Return
+    */
+    if(bm == NULL)
+    {
+        fprintf(stderr, "Bitmap is null\n");
+        return -1;
+    }
+    if(startBlock < 0 || (startBlock + count) > bm->fsNumBlocks)
+    {
+        fprintf(stderr, "Invalid blocks");
+        return -1;
+    }
+    if(count < 1){
+        fprintf(stderr, "Invalid count");
+        return -1;
+    }
+    
+    int clearRet;
+
+    for(int i = startBlock; i < startBlock + count; i++)
+    {
+        clearRet = clearBit(bm, i);
+        if(clearRet == -1){
+            fprintf(stderr, "clearBit failed");
+            return -1;
+        }
+    }
+    return 1;
 }
 
 Bitmap *initBitmap(int fsNumBlocks, int blockSize)

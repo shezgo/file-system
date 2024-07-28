@@ -58,3 +58,4 @@ DE *initDir(int minEntries, DE *parent, VolumeControlBlock *vcb, Bitmap *bm)
     
     return newDir;
 }
+

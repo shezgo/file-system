@@ -17,8 +17,8 @@
 #include "volume_control_block.h"
 #include "bitmap.h"
 
-#define MIN_ENTRIES 10
-
+#define MIN_ENTRIES 15
+extern Bitmap * bitmap;
 extern DE *rootGlobal; // Global declaration of the root directory
 extern DE *cwdGlobal;  // Global declaration of the current working directory
 extern VolumeControlBlock *vcb; // Global definition, always kept in memory 

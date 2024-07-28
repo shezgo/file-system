@@ -1,5 +1,4 @@
 #include "mfs.h"
-#include "fsInit.c"
 #include "fsInit.h"
 #include "fsLow.h"
 
@@ -78,7 +77,48 @@ int freeIfNotNeedDir(DE *dir)
     }
 }
 
+//Find first unused DE in a parent DE. Returns -1 if failed, returns index of DE if success.
+int findUnusedDE(DE *parent)
+{
+    if(parent == NULL){
+        fprintf(stderr, "Parent is null");
+        return 0;
+    }
+
+    /*
+        Pseudocode to find first DE in parent
+        parent[i] is a DE. Check if the DE.name[0] is set to '\0' If so, then unused.
+        If you traverse the whole thing, then there is no unused DE. DE is full.
+
+        How should I track number of DEs in the parent? 
+        number of DEs is parent.size/sizeof(DE)
+    */
+   int numDEs = parent->size/sizeof(DE);
+   for(int i = 2; i < numDEs; i++)
+   {
+    if(parent[i].name[0] == '\0')
+    {
+        return i;
+    }
+   }
+
+   return -1;
+}
+
+//Write an existing directory to disk; return -1 if failed, 1 if success
+int *saveDir(DE *directory)
+{
+    if(directory == NULL)
+    {
+        fprintf(stderr, "Directory is null");
+        return -1;
+    }
+
+    LBAwrite(directory, directory->dirNumBlocks, directory->LBAlocation);
+}
+
 /*parsePath loads the parent in a path and finds if the file (last element) exists or not.
+Returns 0 if successful, -1 if not successful.
 When using this, use parsePath(char * path, &ppi)
 Return values of this function:
 1. (int)Success or error - check if each index before le is a valid directory
@@ -102,6 +142,7 @@ int parsePath(char *path, ppinfo *ppi)
     if (path == NULL)
     {
         fprintf(stderr, "Path is null\n");
+        return 1;
     }
     DE *start;
     if (path[0] == '/')
@@ -183,43 +224,52 @@ int parsePath(char *path, ppinfo *ppi)
 //End helper functions
 //***********************************
 
+//Make a directory; return -1 if fails, 2 if directory already exists, 0 if success.
 int mkdir(char *path, mode_t mode)
 {
     ppinfo ppi;
     int ret = parsePath(path, &ppi);
+
+    //If parsePath fails
     if (ret != 0)
     {
         return (ret);
-    } // parsePath failed, so we know the path is meaningless. Get out.
-    // now we know parse path succeeded, so we go…
+    } 
+
+    //If ppi.lei is not -1, then the directory already exists. Return 2.
     if (ppi.lei != -1)
     {
         return (2);
-    } // the 2 represents some error message but it shouldnt be 2 says lecture
-    // Cause it knows hey, it already exists, I don’t wanna be here.
-    // Now we say we know to make a directory, so let’s do it.
-    DE *newDir = initDir(DEFAULT_CNT, ppi.parent); // ppi.parent and &(ppi.parent[0]) are identical
+    } 
 
-    // Now find the index of an unused DE in the parent - make helper function
+    // Now we know to make a directory - so make it.
+    // ppi.parent and &(ppi.parent[0]) are identical
+    DE *newDir = initDir(MIN_ENTRIES, ppi.parent, vcb, bitmap); 
+
+    // Now find the index of an unused DE in the parent - 0 if failed, index of DE if success
     int x = findUnusedDE(ppi.parent);
+
     if (x == -1)
     {
-        // this is an error case
-        Free Block new dir // remember initDir allocates a whole block, fsRelease?
-            Free new dir   // free(newDir); //probably
-                Return error
+       fsRelease(bitmap, newDir->LBAlocation, newDir->dirNumBlocks);
+       free(newDir);
+       fprintf(stderr, "No unused DE in parent");
+       return -1;
+
     }
-    // if it’s not -1. The newDir is the dot entry of newDir (index 0)
+    // if it’s not -1, the newDir is the dot entry of newDir (index 0)
+    // Assign the newDir to the unused DE in the parent
     memcpy(&(ppi.parent[x]), newDir, sizeof(DE));
     strcpy(ppi.parent[x].name, ppi.le);
     // Now we need to write/save this directory. Also need to do that in initDir function, let’s make a //helper function
-    // This savedir will write the directory to disk. EZ, directories are a whole block
-    savedir(ppi.parent)
-        Free(newdir)
+    // This savedir will write the directory to disk. EZ, directories have their blocks tracked.
+    //Currently initDir saves a dir to disk. Take that, create a helper function, and use that function both
+    //here and there.
+    saveDir(newDir);
+    free(newDir);
 
-        // Helper function:if it’s the root dir or cwd do not free it; else yes
-        Free
-        ifnotneededDir(ppi.parent)
+    // Helper function:if it’s NULL, the root dir or cwd do not free it; else yes
+    freeIfNotNeedDir(ppi.parent);
 }
 
 //******************************************

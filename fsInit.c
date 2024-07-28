@@ -22,6 +22,7 @@ int totalBytes; //used to check bitmap for free space
 VolumeControlBlock *vcb; // Global definition, always kept in memory 
 DE *rootGlobal; // Global definition, always kept in memory
 DE *cwdGlobal;  // Global definition, always kept in memory 
+Bitmap *bitmap; // Global definition, always kept in memory
 
 
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)

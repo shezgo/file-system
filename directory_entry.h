@@ -27,15 +27,17 @@
 
 typedef struct DE
 {
-    long size;           // size of the file in bytes
+    long size;           // size of the file in bytes, or actualEntries * sizeof(DE) if directory
     long LBAlocation;    // location where the directory entry is stored
     long logicalAddress; // index within the block
     char name[NAME + 1]; // Name of the directory entry
     time_t timeCreation; // the time the DE was created
     time_t lastAccessed; // the time the DE was last accessed
     time_t lastModified; // the time the DE was last modified
+
     int16_t isDirectory; // checks if it is a directory. 1 if directory, 0 if not.
-    int32_t dirNumBlocks; //Number of blocks if it's a directory. If not dir or null, -1.
+    int32_t dirNumBlocks; // Number of blocks if it's a directory. If not dir or null, -1.
+
 
 } DE;
 
