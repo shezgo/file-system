@@ -2,11 +2,6 @@
 #define BITMAP_C
 
 #include "bitmap.h"
-#include "fsLow.h"
-#include <stdint.h>
-#include "volume_control_block.h"
-#include <stdio.h>
-#include <stdlib.h>
 
 // Function to LBAwrite the freespace bitmap
 void mapToDisk(Bitmap *bm)

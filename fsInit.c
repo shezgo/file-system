@@ -13,28 +13,15 @@
  * This file is where you will start and initialize your system
  *
  **************************************************************/
+#include "fsInit.h"
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdint.h>
-
-#include "fsLow.h"
-#include "mfs.h"
-#include "directory_entry.h"
-#include "volume_control_block.h"
-#include "bitmap.c"
-
-#define MIN_ENTRIES 50
 
 uint8_t magicNumber;
 int mapNumBlocks; //used to store number of blocks needed for bitmap for easy LBA write
 int totalBytes; //used to check bitmap for free space
 VolumeControlBlock *vcb; // Global definition, always kept in memory 
-DE *rootDir; // Global definition, always kept in memory
-DE *cwdDir;  // Global definition, always kept in memory 
+DE *rootGlobal; // Global definition, always kept in memory
+DE *cwdGlobal;  // Global definition, always kept in memory 
 
 
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
@@ -79,8 +66,8 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 	//Initialize the root directory and LBAwrite it to disk. VCB root_start_block gets initialized
 	//in the initDir function, so LBAwrite vcb must happen after.
-	rootDir = initDir(MIN_ENTRIES, NULL, vcb, bitmap);
-	cwdDir = rootDir;  // Initialize cwdDir to rootDir
+	rootGlobal = initDir(MIN_ENTRIES, NULL, vcb, bitmap);
+	cwdGlobal = rootGlobal;  // Initialize cwdDir to rootDir
 	LBAwrite(vcb, 1, 0);
 	free(vcb);
 

@@ -1,8 +1,11 @@
 #ifndef BITMAP_H
 #define BITMAP_H
 
-#include <stdint.h>
 #include "volume_control_block.h"
+#include "fsLow.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 
 typedef struct Bitmap
 {
