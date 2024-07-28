@@ -25,6 +25,9 @@
 #include "b_io.h"
 
 #include <dirent.h>
+#include "directory_entry.h"
+#include "fsInit.h"
+
 #define FT_REGFILE	DT_REG
 #define FT_DIRECTORY DT_DIR
 #define FT_LINK	DT_LNK
@@ -58,6 +61,22 @@ typedef struct
 	//DE *	directory;			/* Pointer to the loaded directory you want to iterate */
 	struct fs_diriteminfo * di;		/* Pointer to the structure you return from read */
 	} fdDir;
+/*
+Used as a return structure for parsePath info
+Return: 
+1. (int)Success or error - check if each index before le is a valid directory
+^This is the true return value for parsePath. The rest will be in struct ppinfo.
+2.  DE * parentPointer to parent loaded in memory
+3. char * lastElement is the name of the last element in the path
+4. int lastElementIndex - which entry is it inside the parent? -1 if not exist
+
+*/
+typedef struct ppinfo
+{
+	DE * parent; //Pointer to a parent directory array of DEs for the caller of parsePath
+	char * le; //last element for parsePath
+	int lei; //last element index for parsePath
+}ppinfo;
 
 // Key directory functions
 int fs_mkdir(const char *pathname, mode_t mode);
@@ -75,6 +94,12 @@ int fs_isFile(char * filename);	//return 1 if file, 0 otherwise
 int fs_isDir(char * pathname);		//return 1 if directory, 0 otherwise
 int fs_delete(char* filename);	//removes a file
 
+// Helper functions
+int parsePath(char * path, ppinfo * ppi); 
+int findNameInDir(DE *parent, char* name); //returns index of DE in parent if found, -1 if not
+DE * loadDir(DE *dir); //loads a directory into memory
+int entryIsDir(DE *parent, int deIndex); // Checks if the DE in parent is a directory.
+int freeIfNotNeedDir(DE *dir); //Frees a dir only if not cwd, root, or null 
 
 // This is the strucutre that is filled in from a call to fs_stat
 struct fs_stat

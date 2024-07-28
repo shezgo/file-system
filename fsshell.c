@@ -27,6 +27,8 @@
 
 #include "fsLow.h"
 #include "mfs.h"
+#include "fsInit.c"
+
 
 #define PERMISSIONS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
 
@@ -86,6 +88,10 @@ dispatch_t dispatchTable[] = {
 	{"history", cmd_history, "Prints out the history"},
 	{"help", cmd_help, "Prints out help"}
 };
+
+//Keep rootDir and curDir in memory for easy access
+DE * rootDir;
+DE * curDir;
 
 static int dispatchcount = sizeof (dispatchTable) / sizeof (dispatch_t);
 

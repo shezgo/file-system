@@ -30,9 +30,12 @@
 #define MIN_ENTRIES 50
 
 uint8_t magicNumber;
-VolumeControlBlock *vcb;
 int mapNumBlocks; //used to store number of blocks needed for bitmap for easy LBA write
 int totalBytes; //used to check bitmap for free space
+VolumeControlBlock *vcb; // Global definition, always kept in memory 
+DE *rootDir; // Global definition, always kept in memory
+DE *cwdDir;  // Global definition, always kept in memory 
+
 
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 {
@@ -62,7 +65,6 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	blockSize);
 
 	printf("From fsInit: Size of DE:%ld\n", sizeof(DE));
-	printf("From fsInit: NUMBEROFBLOCKS:%ld BLOCKSIZE:%ld", numberOfBlocks, blockSize);
 	Bitmap* bitmap = initBitmap(numberOfBlocks, blockSize);
 	mapNumBlocks = bitmap->mapNumBlocks;
 
@@ -77,7 +79,8 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 	//Initialize the root directory and LBAwrite it to disk. VCB root_start_block gets initialized
 	//in the initDir function, so LBAwrite vcb must happen after.
-	DE * root = initDir(MIN_ENTRIES, NULL, vcb, bitmap);
+	rootDir = initDir(MIN_ENTRIES, NULL, vcb, bitmap);
+	cwdDir = rootDir;  // Initialize cwdDir to rootDir
 	LBAwrite(vcb, 1, 0);
 	free(vcb);
 
@@ -88,3 +91,4 @@ void exitFileSystem()
 {
 	printf("System exiting\n");
 }
+
