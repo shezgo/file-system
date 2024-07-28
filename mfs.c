@@ -305,7 +305,7 @@ fdDir *fs_opendir(const char *pathname)
     // while ppi.parent[x] is not used(an unused entry) &&x < CNTEntries
     int x = 0;
 
-    while ((thisDir->name[0] == '\0') && x < cntEntries)
+    while ((thisDir[x].name[0] == '\0') && x < cntEntries)
     {
         ++x;
     }
@@ -328,10 +328,10 @@ fdDir *fs_opendir(const char *pathname)
         // Then I have something to give them
         // "the fdDir structure info pointer" fdDir confirmed
         fdDirIP->di->d_reclen = sizeof(struct fs_diriteminfo);
-        fdDirIP->di->fileType = ppi.parent[x].isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE; // if true set to FT_DIR elseREG
-        strncpy(fdDirIP->di->d_name, thisDir->name, 255);
-        thisDir->name[strlen(thisDir->name)] = '\0';
-        fdDirIP->directory = thisDir;
+        fdDirIP->di->fileType = thisDir[x].isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE; // if true set to FT_DIR elseREG
+        strncpy(fdDirIP->di->d_name, thisDir[x].name, 255);
+        thisDir->name[strlen(thisDir[x].name)] = '\0';
+        fdDirIP->directory = &(thisDir[x]);
         fdDirIP->dirEntryPosition = x + 1;
         return fdDirIP;
     }
@@ -349,7 +349,7 @@ fdDir *fs_opendir(const char *pathname)
 /*
 fdDir struct - same reclen,
 add what I want
-have a copy of the struct thaT YOU'LL RETURN cause they don't free that I'm just gonna
+have a copy of the struct that you'll return cause they don't free that - I'm just gonna
 keep overwriting it and giving it to them. fs_diritemInfo *di
 
 Why is DE * directory commented out? Cause don't you want this directory loaded into
@@ -361,6 +361,49 @@ readdir.
 call opendir to initialize the structure.
 */
 
-// every time readdir is called, it gives you the next name
+// every time readdir is called, it gives you the next name. If it's iterated through all the DEs,
+// just keep returning null.
+struct fs_diriteminfo *fs_readdir(fdDir *dirp)
+{
+    /*
+        Pseudocode:
+        -check dirp for NULL
+        -Using an fdDir object (dirp), return a fs_diriteminfo object to the caller.
+        -dirp will have an entry position, and a pointer to the directory we'd need to iterate
+        through?
+        -We're returning a di here. Do any updates need to be made to di? Yes.
+        Need to increment dirEntryPosition first every time it's called, which will update
+        which DE you grab from directory. How does this effect di?
+        di will need to keep getting updated depending on the DE. Update all 3 fields.
+
+    */
+    if (dirp == NULL)
+    {
+        fprintf(stderr, "fDirectory is invalid");
+        return NULL;
+    }
+    /*
+        Hang on, we need some clarity here. What is readdir going to do?
+        So, we have an open directory given to us with an fdDir (basically a file descriptor)
+
+        We want to parse that and return the next directory entry within that directory.
+        This means when we get it, there's going to be what was read the last time it was called.
+        The first thing we need to do is pull up the next directory.
+        How do we do that? It needs to be the next directory in the parent. Is fdDir going
+        to hold the parent already? Yes, directory IS the parent and dirEntryPosition holds 
+        the current index within that parent.
+
+        So, now dirp is pointing at the data of the next DE. Any other updates needed on dirp?
+        Yes, to di.
+    */
+
+ 
+    DE *newDE = &(dirp->directory[dirp->dirEntryPosition]);
+    strncpy(dirp->di->d_name, newDE->name, 255);
+    dirp->di->d_name[strlen(dirp->di->d_name)] = '\0';
+    dirp->di->fileType = newDE->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE;
+    dirp->dirEntryPosition++;
+    return dirp->di;
+}
 
 // closedir frees the resources from opendir
