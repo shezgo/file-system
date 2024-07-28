@@ -407,3 +407,9 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
 }
 
 // closedir frees the resources from opendir
+int fs_closedir(fdDir *dirp)
+{
+    free(dirp->directory);
+    free(dirp->di);
+    free(dirp);
+}
