@@ -24,6 +24,7 @@ DE *initDir(int minEntries, DE *parent, VolumeControlBlock *vcb, Bitmap *bm)
         newDir[i].lastAccessed = (time_t)(-1);
         newDir[i].lastModified = (time_t)(-1);
         newDir[i].isDirectory = -1;
+        newDir[i].dirNumBlocks = -1;
     }
     // Initialize . entry in the directory
     int newLoc = fsAlloc(bm, blocksNeeded);
@@ -37,6 +38,7 @@ DE *initDir(int minEntries, DE *parent, VolumeControlBlock *vcb, Bitmap *bm)
     newDir[0].timeCreation = tc;
     newDir[0].lastAccessed = tc;
     newDir[0].lastModified = tc;
+    newDir[0].dirNumBlocks = blocksNeeded;
 
     // Initialize the .. (parent) entry in the directory. This inits root correctly as well.
     DE *dotdot = parent;

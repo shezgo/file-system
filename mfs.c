@@ -36,8 +36,8 @@ DE * loadDir(DE *dir)
     return;
    }
 
-   DE *loadedDir = malloc(vcb->block_size);
-   LBAread(loadedDir, 1, dir->LBAlocation);
+   DE *loadedDir = malloc(dir->dirNumBlocks * vcb->block_size);
+   LBAread(loadedDir, dir->dirNumBlocks, dir->LBAlocation);
    return loadedDir;
 }
 
