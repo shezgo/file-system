@@ -58,11 +58,11 @@ typedef struct
 	/*****TO DO:  Fill in this structure with what your open/read directory needs  *****/
 	unsigned short  d_reclen;		/* length of this record */
 	unsigned short	dirEntryPosition;	/* which directory entry position, like file pos */
-	//DE *	directory;			/* Pointer to the loaded directory you want to iterate */
+	DE *directory;			/* Pointer to the loaded directory you want to iterate */
 	struct fs_diriteminfo * di;		/* Pointer to the structure you return from read */
 	} fdDir;
 /*
-Used as a return structure for parsePath info
+ppInfo is used as a return structure for parsePath info
 Return: 
 1. (int)Success or error - check if each index before le is a valid directory
 ^This is the true return value for parsePath. The rest will be in struct ppinfo.

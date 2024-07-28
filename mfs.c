@@ -2,12 +2,11 @@
 #include "fsInit.h"
 #include "fsLow.h"
 
-
 //*****************************************
 // Helper functions
 
 // Returns index of the DE with name parameter in parent
-int findNameInDir(DE *parent, char *name) 
+int findNameInDir(DE *parent, char *name)
 {
     if (parent == NULL)
     {
@@ -27,27 +26,27 @@ int findNameInDir(DE *parent, char *name)
     return -1;
 }
 // Loads a directory into memory for manipulation
-DE * loadDir(DE *dir)
+DE *loadDir(DE *dir)
 {
-   if(dir->isDirectory == 0)
-   {
-    fprintf(stderr, "DE is not a directory.");
-    return;
-   }
+    if (dir->isDirectory == 0)
+    {
+        fprintf(stderr, "DE is not a directory.");
+        return NULL;
+    }
 
-   DE *loadedDir = malloc(dir->dirNumBlocks * vcb->block_size);
-   LBAread(loadedDir, dir->dirNumBlocks, dir->LBAlocation);
-   return loadedDir;
+    DE *loadedDir = malloc(dir->dirNumBlocks * vcb->block_size);
+    LBAread(loadedDir, dir->dirNumBlocks, dir->LBAlocation);
+    return loadedDir;
 }
 
 // Checks if the DE in parent is a directory. 1 if true, 0 if false.
 int entryIsDir(DE *parent, int deIndex)
 {
-    if(parent == NULL)
+    if (parent == NULL)
     {
         fprintf(stderr, "Parent is null");
     }
-    if(parent[deIndex].isDirectory == 1)
+    if (parent[deIndex].isDirectory == 1)
     {
         return 1;
     }
@@ -56,15 +55,15 @@ int entryIsDir(DE *parent, int deIndex)
         return 0;
     }
 }
-//Frees a dir only if not cwd, root, or null.
-//Return 1 indicates freeing the dir, 0 indicates no memory freed.
-int freeIfNotNeedDir(DE *dir) 
+// Frees a dir only if not cwd, root, or null.
+// Return 1 indicates freeing the dir, 0 indicates no memory freed.
+int freeIfNotNeedDir(DE *dir)
 {
-    if(dir != NULL)
+    if (dir != NULL)
     {
-        if(dir != cwdGlobal)
+        if (dir != cwdGlobal)
         {
-            if(dir != rootGlobal)
+            if (dir != rootGlobal)
             {
                 free(dir);
                 return 1;
@@ -77,10 +76,11 @@ int freeIfNotNeedDir(DE *dir)
     }
 }
 
-//Find first unused DE in a parent DE. Returns -1 if failed, returns index of DE if success.
+// Find first unused DE in a parent DE. Returns -1 if failed, returns index of DE if success.
 int findUnusedDE(DE *parent)
 {
-    if(parent == NULL){
+    if (parent == NULL)
+    {
         fprintf(stderr, "Parent is null");
         return 0;
     }
@@ -90,25 +90,25 @@ int findUnusedDE(DE *parent)
         parent[i] is a DE. Check if the DE.name[0] is set to '\0' If so, then unused.
         If you traverse the whole thing, then there is no unused DE. DE is full.
 
-        How should I track number of DEs in the parent? 
+        How should I track number of DEs in the parent?
         number of DEs is parent.size/sizeof(DE)
     */
-   int numDEs = parent->size/sizeof(DE);
-   for(int i = 2; i < numDEs; i++)
-   {
-    if(parent[i].name[0] == '\0')
+    int numDEs = parent->size / sizeof(DE);
+    for (int i = 2; i < numDEs; i++)
     {
-        return i;
+        if (parent[i].name[0] == '\0')
+        {
+            return i;
+        }
     }
-   }
 
-   return -1;
+    return -1;
 }
 
-//Write an existing directory to disk; return -1 if failed, 1 if success
+// Write an existing directory to disk; return -1 if failed, 1 if success
 int *saveDir(DE *directory)
 {
-    if(directory == NULL)
+    if (directory == NULL)
     {
         fprintf(stderr, "Directory is null");
         return -1;
@@ -219,43 +219,43 @@ int parsePath(char *path, ppinfo *ppi)
         parent = temp;
         token1 = token2;
     } while (token2 != NULL);
+    // if the index is invalid, get out of here. If the index was valid but not a directory, get out of here.
+    // If it was, then valid!
+}
+// End helper functions
+//*************************************************************************************************
 
-} // if the index is invalid, get out of here. If the index was valid but not a directory, get out of here. If it was, then valid!
-//End helper functions
-//***********************************
-
-//Make a directory; return -1 if fails, 2 if directory already exists, 0 if success.
+// Make a directory; return -1 if fails, 2 if directory already exists, 0 if success.
 int mkdir(char *path, mode_t mode)
 {
     ppinfo ppi;
-    int ret = parsePath(path, &ppi);
+    int parseFlag = parsePath(path, &ppi);
 
-    //If parsePath fails
-    if (ret != 0)
+    // If parsePath fails
+    if (parseFlag != 0)
     {
-        return (ret);
-    } 
+        return (parseFlag);
+    }
 
-    //If ppi.lei is not -1, then the directory already exists. Return 2.
+    // If ppi.lei is not -1, then the directory already exists. Return 2.
     if (ppi.lei != -1)
     {
         return (2);
-    } 
+    }
 
-    // Now we know to make a directory - so make it.
+    // Now we know to make a directory.
     // ppi.parent and &(ppi.parent[0]) are identical
-    DE *newDir = initDir(MIN_ENTRIES, ppi.parent, vcb, bitmap); 
+    DE *newDir = initDir(MIN_ENTRIES, ppi.parent, vcb, bitmap);
 
     // Now find the index of an unused DE in the parent - 0 if failed, index of DE if success
     int x = findUnusedDE(ppi.parent);
 
     if (x == -1)
     {
-       fsRelease(bitmap, newDir->LBAlocation, newDir->dirNumBlocks);
-       free(newDir);
-       fprintf(stderr, "No unused DE in parent");
-       return -1;
-
+        fsRelease(bitmap, newDir->LBAlocation, newDir->dirNumBlocks);
+        free(newDir);
+        fprintf(stderr, "No unused DE in parent");
+        return -1;
     }
     // if it’s not -1, the newDir is the dot entry of newDir (index 0)
     // Assign the newDir to the unused DE in the parent
@@ -263,8 +263,8 @@ int mkdir(char *path, mode_t mode)
     strcpy(ppi.parent[x].name, ppi.le);
     // Now we need to write/save this directory. Also need to do that in initDir function, let’s make a //helper function
     // This savedir will write the directory to disk. EZ, directories have their blocks tracked.
-    //Currently initDir saves a dir to disk. Take that, create a helper function, and use that function both
-    //here and there.
+    // Currently initDir saves a dir to disk. Take that, create a helper function, and use that function both
+    // here and there.
     saveDir(newDir);
     free(newDir);
 
@@ -273,27 +273,94 @@ int mkdir(char *path, mode_t mode)
 }
 
 //******************************************
+// Open a directory. Returns NULL if fails.
 fdDir *fs_opendir(const char *pathname)
 {
-    DE *thisdir = magic(“pathname”) // Now a directory that was on disk is loaded into RAM
-                                    // In RAM, this looks like an array of DEs. The first one is ., the second one is ..
-                                    // Let’s start from 0. Then we cann readdir and pass in this structure. Im gonna look at this pointer, sub? which one I’m on.
+    ppinfo ppi;
+    int parseFlag = parsePath(pathname, &ppi);
 
-                  // how do we find out how many entries there are?
-—->Cntentries = ptr[0].size / sizeof(DE)
-                                   While ptr[x] is not used(an unused entry),
-       &&x < CNTEntries
+    // If the directory wasn't found, return failure.
+    if (ppi.lei == -1)
     {
-        ++x
-                If x < CNTentries
+        fprintf(stderr, "Directory does not exist");
+        return NULL;
+    }
+
+    // Check that path is a directory and load it into memory if so using loadDir
+    DE *thisDir = loadDir(&ppi.parent[ppi.lei]);
+    if (thisDir == NULL)
+    {
+        fprintf(stderr, "File is not a directory");
+        return NULL;
+    }
+    // In RAM, this looks like an array of DEs. The first one is ., the second one is ..
+
+    //**** NEEDS READDIR HERE? NO! This is how you get the fdDir struct which gets passed into readdir.
+    //"readdir is an iterator function"
+    // Let’s start from 0. Then we cann readdir and pass in thisdir.
+    // "Im gonna look at this pointer, sub? which one I’m on."
+
+    // how do we find out how many entries there are?
+    int cntEntries = thisDir->size / sizeof(DE);
+    // while ppi.parent[x] is not used(an unused entry) &&x < CNTEntries
+    int x = 0;
+
+    while ((thisDir->name[0] == '\0') && x < cntEntries)
+    {
+        ++x;
+    }
+    if (x < cntEntries)
+    {
+        fdDir *fdDirIP = malloc(sizeof(fdDir));
+
+        if (fdDirIP == NULL)
         {
-            // Then I have something to give them
-            // the fdDir structture
-            fdDir infoPointer.di.reclen = sizeof(*di)
-                                              fdDirIP.di.fileType = ptr[x].isDir ? FT_DIR : FT_REG // if true set to FT_DIR elseREG
-                                                                                                strncpy(fdDirIP.di.name, ptr[x].name, 255) fdDirIP.currententry = x + 1;
-            Return di;
+            fprintf(stderr, "fdDir malloc failed");
+            return NULL;
         }
-        Else { return NULL }
+        fdDirIP->di = malloc(sizeof(struct fs_diriteminfo));
+        if (fdDirIP->di == NULL)
+        {
+            fprintf(stderr, "fdDirIP->di failed");
+            free(fdDirIP);
+            return NULL;
+        }
+        // Then I have something to give them
+        // "the fdDir structure info pointer" fdDir confirmed
+        fdDirIP->di->d_reclen = sizeof(struct fs_diriteminfo);
+        fdDirIP->di->fileType = ppi.parent[x].isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE; // if true set to FT_DIR elseREG
+        strncpy(fdDirIP->di->d_name, thisDir->name, 255);
+        thisDir->name[strlen(thisDir->name)] = '\0';
+        fdDirIP->directory = thisDir;
+        fdDirIP->dirEntryPosition = x + 1;
+        return fdDirIP;
+    }
+    else
+    {
+        return NULL;
     }
 }
+
+// reclen? length of the struct itself - fs_diriteminfo. This is conventional for structs
+// meaningless for us though
+// filetype is fs_diriteminfo is either regfile or directory #defines
+// dont exceed name field, use strncpy and make sure it's null terminated
+
+/*
+fdDir struct - same reclen,
+add what I want
+have a copy of the struct thaT YOU'LL RETURN cause they don't free that I'm just gonna
+keep overwriting it and giving it to them. fs_diritemInfo *di
+
+Why is DE * directory commented out? Cause don't you want this directory loaded into
+ram so you can go array[0] [1] [2]?
+
+dirEntryPosition - when open is called, what do you start at? 0. You'll iterate using this for
+readdir.
+
+call opendir to initialize the structure.
+*/
+
+// every time readdir is called, it gives you the next name
+
+// closedir frees the resources from opendir
