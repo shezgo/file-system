@@ -10,14 +10,18 @@ int findNameInDir(DE *parent, char *name)
 {
     if (parent == NULL)
     {
-        fprintf(stderr, "Parent is null");
+        fprintf(stderr, "Parent is null\n");
         return -1;
     }
-
+    if (name == NULL)
+    {
+        fprintf(stderr, "File name is null\n");
+        return -1;
+    }
     int numEntries = parent->size / sizeof(DE);
-
     for (int i = 0; i < numEntries; i++)
     {
+        printf("parent[i].name:%s\n", parent[i].name);
         if (strcmp(parent[i].name, name) == 0)
         {
             return i;
@@ -30,8 +34,12 @@ DE *loadDir(DE *dir)
 {
     if (dir->isDirectory == 0)
     {
-        fprintf(stderr, "DE is not a directory.");
+        fprintf(stderr, "loadDir: DE is not a directory.\n");
         return NULL;
+    }
+    if(strcmp(dir->name, rootGlobal->name)== 0){
+
+        return rootGlobal;
     }
 
     DE *loadedDir = malloc(dir->dirNumBlocks * vcb->block_size);
@@ -44,7 +52,7 @@ int entryIsDir(DE *parent, int deIndex)
 {
     if (parent == NULL)
     {
-        fprintf(stderr, "Parent is null");
+        fprintf(stderr, "Parent is null\n");
     }
     if (parent[deIndex].isDirectory == 1)
     {
@@ -81,7 +89,7 @@ int findUnusedDE(DE *parent)
 {
     if (parent == NULL)
     {
-        fprintf(stderr, "Parent is null");
+        fprintf(stderr, "Parent is null\n");
         return 0;
     }
 
@@ -110,7 +118,7 @@ int saveDir(DE *directory)
 {
     if (directory == NULL)
     {
-        fprintf(stderr, "Directory is null");
+        fprintf(stderr, "Directory is null\n");
         return -1;
     }
 
@@ -151,8 +159,7 @@ int parsePath(char *path, ppinfo *ppi)
         if (rootGlobal != NULL)
         {
             start = rootGlobal;
-            cwdName[0] = '/';
-            cwdName[1] = '\0';
+            strcpy(cwdName, "/");
         }
         else
         {
@@ -179,7 +186,8 @@ int parsePath(char *path, ppinfo *ppi)
     {
         ppi->parent = parent;
         ppi->le = NULL;
-        ppi->lei = -2; // this means path is root
+        ppi->lei = 0; // this means path is root
+        return -2;
     }
 
     // Start building the absolute path here and hold in ppi?
@@ -236,7 +244,7 @@ int fs_mkdir(const char *path, mode_t mode)
     if (path == NULL)
     {
         fprintf(stderr, "Path is null\n");
-        return -1; 
+        return -1;
     }
 
     // Create a writable copy of the path
@@ -244,7 +252,7 @@ int fs_mkdir(const char *path, mode_t mode)
     if (pathCopy == NULL)
     {
         fprintf(stderr, "Failed to duplicate path\n");
-        return -1; 
+        return -1;
     }
     ppinfo ppi;
     int parseFlag = parsePath(pathCopy, &ppi);
@@ -294,18 +302,17 @@ int fs_mkdir(const char *path, mode_t mode)
 // Open a directory. Returns NULL if fails.
 fdDir *fs_opendir(const char *pathname)
 {
-        if (pathname == NULL)
+    if (pathname == NULL)
     {
         fprintf(stderr, "Path is null\n");
-        return NULL; 
+        return NULL;
     }
-
     // Create a writable copy of the path
     char *pathCopy = strdup(pathname);
     if (pathCopy == NULL)
     {
         fprintf(stderr, "Failed to duplicate path\n");
-        return NULL; 
+        return NULL;
     }
     ppinfo ppi;
     int parseFlag = parsePath(pathCopy, &ppi);
@@ -314,15 +321,17 @@ fdDir *fs_opendir(const char *pathname)
     // If the directory wasn't found, return failure.
     if (ppi.lei == -1)
     {
-        fprintf(stderr, "Directory does not exist");
+        fprintf(stderr, "Directory does not exist\n");
         return NULL;
     }
 
     // Check that path is a directory and load it into memory if so using loadDir
+            printf("opendir debug 1\n");
     DE *thisDir = loadDir(&ppi.parent[ppi.lei]);
     if (thisDir == NULL)
     {
-        fprintf(stderr, "File is not a directory");
+        printf("opendir debug 2\n");
+        fprintf(stderr, "File is not a directory\n");
         return NULL;
     }
     // In RAM, this looks like an array of DEs. The first one is ., the second one is ..

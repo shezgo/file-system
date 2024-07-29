@@ -71,7 +71,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	//in the initDir function, so LBAwrite vcb must happen after.
 	rootGlobal = initDir(MIN_ENTRIES, NULL, vcb, bitmap);
 	cwdGlobal = rootGlobal;  // Initialize cwdDir to rootDir
-	cwdName = "/";
+	strcpy(cwdName, "/");
 	LBAwrite(vcb, 1, 0);
 	free(vcb);
 

@@ -225,9 +225,15 @@ int cmd_ls (int argcnt, char *argvec[])
 		}
 	else   // no pathname/filename specified - use cwd
 		{
+			printf("debug 1\n");
 		char * path = fs_getcwd(cwd, DIRMAX_LEN);	//get current working directory
+					printf("debug 2\n");
+					printf("path value:%s\n", path);
+
 		fdDir * dirp;
 		dirp = fs_opendir (path);
+					printf("debug 3\n");
+
 		return (displayFiles (dirp, flall, fllong));
 		}
 #endif
