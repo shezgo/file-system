@@ -22,11 +22,13 @@ int totalBytes; //used to check bitmap for free space
 VolumeControlBlock *vcb; // Global definition, always kept in memory 
 DE *rootGlobal; // Global definition, always kept in memory
 DE *cwdGlobal;  // Global definition, always kept in memory 
+char *cwdName; //Global char* used to track cwd path string
 Bitmap *bitmap; // Global definition, always kept in memory
 
 
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 {
+	cwdName = (char*)malloc(CWD_SIZE);
 	// This error check guarantees that the vcb can fit in block 0.
 	if (blockSize < sizeof(VolumeControlBlock))
 	{
@@ -69,6 +71,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	//in the initDir function, so LBAwrite vcb must happen after.
 	rootGlobal = initDir(MIN_ENTRIES, NULL, vcb, bitmap);
 	cwdGlobal = rootGlobal;  // Initialize cwdDir to rootDir
+	cwdName = "/";
 	LBAwrite(vcb, 1, 0);
 	free(vcb);
 

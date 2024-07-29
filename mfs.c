@@ -106,7 +106,7 @@ int findUnusedDE(DE *parent)
 }
 
 // Write an existing directory to disk; return -1 if failed, 1 if success
-int *saveDir(DE *directory)
+int saveDir(DE *directory)
 {
     if (directory == NULL)
     {
@@ -115,6 +115,7 @@ int *saveDir(DE *directory)
     }
 
     LBAwrite(directory, directory->dirNumBlocks, directory->LBAlocation);
+    return 1;
 }
 
 /*parsePath loads the parent in a path and finds if the file (last element) exists or not.
@@ -169,7 +170,6 @@ int parsePath(char *path, ppinfo *ppi)
     }
 
     DE *parent = start;
-    ppinfo *ppi;
 
     // saveptr is required by strtok_r
     char *saveptr;
@@ -231,10 +231,24 @@ int parsePath(char *path, ppinfo *ppi)
 //*************************************************************************************************
 
 // Make a directory; return -1 if fails, 2 if directory already exists, 0 if success.
-int fs_mkdir(char *path, mode_t mode)
+int fs_mkdir(const char *path, mode_t mode)
 {
+    if (path == NULL)
+    {
+        fprintf(stderr, "Path is null\n");
+        return -1; 
+    }
+
+    // Create a writable copy of the path
+    char *pathCopy = strdup(path);
+    if (pathCopy == NULL)
+    {
+        fprintf(stderr, "Failed to duplicate path\n");
+        return -1; 
+    }
     ppinfo ppi;
-    int parseFlag = parsePath(path, &ppi);
+    int parseFlag = parsePath(pathCopy, &ppi);
+    free(pathCopy);
 
     // If parsePath fails
     if (parseFlag != 0)
@@ -272,7 +286,6 @@ int fs_mkdir(char *path, mode_t mode)
     // here and there.
     saveDir(newDir);
     free(newDir);
-
     // Helper function:if it’s NULL, the root dir or cwd do not free it; else yes
     freeIfNotNeedDir(ppi.parent);
 }
@@ -281,8 +294,22 @@ int fs_mkdir(char *path, mode_t mode)
 // Open a directory. Returns NULL if fails.
 fdDir *fs_opendir(const char *pathname)
 {
+        if (pathname == NULL)
+    {
+        fprintf(stderr, "Path is null\n");
+        return NULL; 
+    }
+
+    // Create a writable copy of the path
+    char *pathCopy = strdup(pathname);
+    if (pathCopy == NULL)
+    {
+        fprintf(stderr, "Failed to duplicate path\n");
+        return NULL; 
+    }
     ppinfo ppi;
-    int parseFlag = parsePath(pathname, &ppi);
+    int parseFlag = parsePath(pathCopy, &ppi);
+    free(pathCopy);
 
     // If the directory wasn't found, return failure.
     if (ppi.lei == -1)
@@ -505,7 +532,8 @@ char *fs_getcwd(char *pathname, size_t size)
 // Return 1 if file, 0 if not
 int fs_isFile(char *filename)
 {
-    if(filename == NULL){
+    if (filename == NULL)
+    {
         fprintf(stderr, "Null filename");
         return 0;
     }
@@ -524,7 +552,8 @@ int fs_isFile(char *filename)
 int fs_isDir(char *pathname)
 {
 
-        if(pathname == NULL){
+    if (pathname == NULL)
+    {
         fprintf(stderr, "Null pathname");
         return 0;
     }
@@ -538,4 +567,9 @@ int fs_isDir(char *pathname)
     {
         return 0;
     }
+}
+
+int fs_stat(const char *path, struct fs_stat *buf)
+{
+    return 0;
 }
