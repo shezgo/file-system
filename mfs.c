@@ -161,7 +161,8 @@ int parsePath(char *path, ppinfo *ppi)
         if (cwdGlobal != NULL)
         {
             start = cwdGlobal; // also global already loaded.
-            // Keep CurrWorkDir and rootDir in Ram. When switch dirs, switch the currentworkingdir so they //never get switched. Root is loaded forever.
+            // Keep cwd and rootDir in Ram. When switch dirs, switch the cwd so they 
+            //never get switched. Root is loaded forever.
         }
     }
 
@@ -272,7 +273,7 @@ int fs_mkdir(char *path, mode_t mode)
     freeIfNotNeedDir(ppi.parent);
 }
 
-//******************************************
+//************************************************************************
 // Open a directory. Returns NULL if fails.
 fdDir *fs_opendir(const char *pathname)
 {
@@ -340,7 +341,7 @@ fdDir *fs_opendir(const char *pathname)
         return NULL;
     }
 }
-
+//**************************************************************************
 // reclen? length of the struct itself - fs_diriteminfo. This is conventional for structs
 // meaningless for us though
 // filetype is fs_diriteminfo is either regfile or directory #defines
@@ -405,11 +406,48 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
     dirp->dirEntryPosition++;
     return dirp->di;
 }
-
+//********************************************************************
 // closedir frees the resources from opendir
 int fs_closedir(fdDir *dirp)
 {
+    if(dirp == NULL){
+        fprintf(stderr, "Directory doesn't exist");
+        return 0;
+    }
     free(dirp->directory);
     free(dirp->di);
     free(dirp);
+    return 1;
 }
+
+int fs_setcwd(char *pathname)
+{
+    /*PICKUP
+        So this takes in a pathname. I can use parsePath to get what info?
+        parsePath will determine if the path is relative or absolute.
+        It will step through every single element in the path to verify its
+        existence, and...trace this for pickup. Night brah
+
+        Start over. 
+
+        What if we had a global array where each element is an element in the path. 
+        Is there an easily manipulatable array in C? Arrays can be manipulated by
+        index, and you can always just overwrite elements.
+
+        parsePath takes in a char* and tokenizes it. You're holding onto one token
+        while you look at the next to determine where the end of the path is. You're
+        also validating that the files in the path do indeed exist, and if they're 
+        directories.
+
+        The only time that your cwd changes is when you call setcwd. True or false?
+
+        
+
+    */
+}
+
+char * fs_getcwd(char *pathname, size_t size)
+{
+
+}
+

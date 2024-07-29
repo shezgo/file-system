@@ -18,7 +18,6 @@ DE *initDir(int minEntries, DE *parent, VolumeControlBlock *vcb, Bitmap *bm)
     {
         newDir[i].size = -1;
         newDir[i].LBAlocation = -1;
-        newDir[i].logicalAddress = -1;
         newDir[i].name[0] = '\0';
         newDir[i].timeCreation = (time_t)(-1);
         newDir[i].lastAccessed = (time_t)(-1);
@@ -31,7 +30,6 @@ DE *initDir(int minEntries, DE *parent, VolumeControlBlock *vcb, Bitmap *bm)
     printf("From directory_entry.h->initDir: newLoc:%d blocksNeeded:%d\n", newLoc, blocksNeeded);
     time_t tc = time(NULL);
     newDir[0].LBAlocation = newLoc;
-    newDir[0].logicalAddress = 0; // Every new directory starts at beginning block boundary
     newDir[0].size = actualEntries * sizeof(DE);
     strcpy(newDir[0].name, ".");
     newDir[0].isDirectory = 1;
@@ -52,7 +50,6 @@ DE *initDir(int minEntries, DE *parent, VolumeControlBlock *vcb, Bitmap *bm)
 
     memcpy(&newDir[1], dotdot, sizeof(DE));
     strcpy(newDir[1].name, "..");
-    newDir[1].logicalAddress = 1 * sizeof(DE);
 
     LBAwrite(newDir, blocksNeeded, newLoc);
     

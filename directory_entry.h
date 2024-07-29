@@ -25,11 +25,12 @@
 
 #define NAME 31
 
+//To find the logical address of a DE within its parent directory, just use
+//index in its parent directory * sizeof(DE).
 typedef struct DE
 {
     long size;           // size of the file in bytes, or actualEntries * sizeof(DE) if directory
     long LBAlocation;    // location where the directory entry is stored
-    long logicalAddress; // index within the block
     char name[NAME + 1]; // Name of the directory entry
     time_t timeCreation; // the time the DE was created
     time_t lastAccessed; // the time the DE was last accessed
