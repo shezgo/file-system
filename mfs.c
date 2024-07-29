@@ -149,7 +149,9 @@ int parsePath(char *path, ppinfo *ppi)
     {
         if (rootGlobal != NULL)
         {
-            start = rootGlobal; // what am i assuming here? That rootDir is a global variable - already //loaded into memory
+            start = rootGlobal;
+            cwdName[0] = '/';
+            cwdName[1] = '\0';
         }
         else
         {
@@ -161,8 +163,8 @@ int parsePath(char *path, ppinfo *ppi)
         if (cwdGlobal != NULL)
         {
             start = cwdGlobal; // also global already loaded.
-            // Keep cwd and rootDir in Ram. When switch dirs, switch the cwd so they 
-            //never get switched. Root is loaded forever.
+            // Keep cwd and rootDir in Ram. When switch dirs, switch the cwd so they
+            // never get switched. Root is loaded forever.
         }
     }
 
@@ -177,11 +179,13 @@ int parsePath(char *path, ppinfo *ppi)
     {
         ppi->parent = parent;
         ppi->le = NULL;
-        ppi->lei = -2; // it’s not that it doesn’t exist, there’s no last element. Sentinel value for / only
-        return (0);
+        ppi->lei = -2; // this means path is root
     }
 
+    // Start building the absolute path here and hold in ppi?
+
     char *token2;
+
     do
     {
         ppi->le = token1;
@@ -202,14 +206,14 @@ int parsePath(char *path, ppinfo *ppi)
         if (ppi->lei < 0) // the name doesn’t exist, invalid path
         {
             fprintf(stderr, "Invalid path");
-            return;
+            return -1;
         }
 
         // Helper function EntryisDir
         if (entryIsDir(parent, ppi->lei) == 0)
         {
             fprintf(stderr, "Invalid path");
-            return;
+            return -1;
         }
         // Now we know token 1 does exist, is valid, and is a directory. So we want to load it/get
         // that dir
@@ -391,14 +395,13 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
         This means when we get it, there's going to be what was read the last time it was called.
         The first thing we need to do is pull up the next directory.
         How do we do that? It needs to be the next directory in the parent. Is fdDir going
-        to hold the parent already? Yes, directory IS the parent and dirEntryPosition holds 
+        to hold the parent already? Yes, directory IS the parent and dirEntryPosition holds
         the current index within that parent.
 
         So, now dirp is pointing at the data of the next DE. Any other updates needed on dirp?
         Yes, to di.
     */
 
- 
     DE *newDE = &(dirp->directory[dirp->dirEntryPosition]);
     strncpy(dirp->di->d_name, newDE->name, 255);
     dirp->di->d_name[strlen(dirp->di->d_name)] = '\0';
@@ -410,7 +413,8 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
 // closedir frees the resources from opendir
 int fs_closedir(fdDir *dirp)
 {
-    if(dirp == NULL){
+    if (dirp == NULL)
+    {
         fprintf(stderr, "Directory doesn't exist");
         return 0;
     }
@@ -420,34 +424,118 @@ int fs_closedir(fdDir *dirp)
     return 1;
 }
 
+// Return 0 if success, -1 if fail
 int fs_setcwd(char *pathname)
 {
-    /*PICKUP
-        So this takes in a pathname. I can use parsePath to get what info?
-        parsePath will determine if the path is relative or absolute.
-        It will step through every single element in the path to verify its
-        existence, and...trace this for pickup. Night brah
+    ppinfo ppi;
+    int parseFlag = parsePath(pathname, &ppi);
 
-        Start over. 
+    // If parsePath fails, return error
+    if (parseFlag == -1)
+    {
+        fprintf(stderr, "Invalid pathname");
+        return (parseFlag);
+    }
+    // If parsePath resolves to root
+    if (ppi.lei == -2)
+    {
+        cwdGlobal = rootGlobal;
+        return 0;
+    }
 
-        What if we had a global array where each element is an element in the path. 
-        Is there an easily manipulatable array in C? Arrays can be manipulated by
-        index, and you can always just overwrite elements.
+    if (fs_isFile(pathname) == 1)
+    {
+        fprintf(stderr, "Path is not a directory");
+        return -1;
+    }
 
-        parsePath takes in a char* and tokenizes it. You're holding onto one token
-        while you look at the next to determine where the end of the path is. You're
-        also validating that the files in the path do indeed exist, and if they're 
-        directories.
-
-        The only time that your cwd changes is when you call setcwd. True or false?
-
-        
-
-    */
+    // If the path is valid, update the current working directory.
+    if (fs_isDir(pathname) == 1)
+    {
+        cwdGlobal = &(ppi.parent[ppi.lei]);
+        strcpy(cwdName, pathname);
+        cwdName[strlen(cwdName)] = '\0';
+        return 0;
+    }
 }
 
-char * fs_getcwd(char *pathname, size_t size)
+// Returns 1 if success, 0 if fail
+int isNullTerminated(char *str, size_t len)
+{
+    if (str == NULL)
+        return 0; // Check for null pointer
+
+    for (int i = 0; i < len; ++i)
+    {
+        if (str[i] == '\0')
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// Copies the cwd into the user's buffer pathname. Return the pathname if success, NULL if error.
+char *fs_getcwd(char *pathname, size_t size)
+{
+    if (pathname == NULL)
+    {
+        fprintf(stderr, "Null pathname");
+        return NULL;
+    }
+
+    if (size <= strlen(cwdName))
+    {
+        fprintf(stderr, "Buffer size is too small");
+        return NULL;
+    }
+    if (isNullTerminated(cwdName, size) == 1)
+    {
+        strncpy(pathname, cwdName, size - 1);
+        pathname[size - 1] = '\0'; // Ensure null termination
+        return pathname;
+    }
+    else
+    {
+        fprintf(stderr, "Source string is not null-terminated");
+        return NULL;
+    }
+}
+
+// Return 1 if file, 0 if not
+int fs_isFile(char *filename)
+{
+    if(filename == NULL){
+        fprintf(stderr, "Null filename");
+        return 0;
+    }
+    ppinfo ppi;
+    parsePath(filename, &ppi);
+    if (ppi.parent[ppi.lei].isDirectory == 0 && ppi.parent[ppi.lei].name[0] != '\0')
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+int fs_isDir(char *pathname)
 {
 
+        if(pathname == NULL){
+        fprintf(stderr, "Null pathname");
+        return 0;
+    }
+    ppinfo ppi;
+    parsePath(pathname, &ppi);
+    if (ppi.parent[ppi.lei].isDirectory == 1 && ppi.parent[ppi.lei].name[0] != '\0')
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
-
