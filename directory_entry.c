@@ -12,12 +12,21 @@ DE *initDir(int minEntries, DE *parent, VolumeControlBlock *vcb, Bitmap *bm)
 
     // Calculate number of entries that can fit inside the directory block(s)
     int actualEntries = bytesToAlloc / sizeof(DE);
+    int newLoc = fsAlloc(bm, blocksNeeded);
+    int entriesPerBlock = actualEntries / blocksNeeded;
 
+    //Init LBAlocations depending on how many entries per block there are.
+    for (int i = 0; i < entriesPerBlock; i++)
+    {
+        for (int j = 0; j < blocksNeeded; j++)
+        {
+            newDir[j * entriesPerBlock].LBAlocation = newLoc + j;
+        }
+    }
     // Initialize the entries in the directory - start with 2 because . and .. are at 0 and 1
     for (int i = 2; i < actualEntries; i++)
     {
         newDir[i].size = -1;
-        newDir[i].LBAlocation = -1;
         newDir[i].name[0] = '\0';
         newDir[i].timeCreation = (time_t)(-1);
         newDir[i].lastAccessed = (time_t)(-1);
@@ -25,11 +34,15 @@ DE *initDir(int minEntries, DE *parent, VolumeControlBlock *vcb, Bitmap *bm)
         newDir[i].isDirectory = -1;
         newDir[i].dirNumBlocks = -1;
     }
+    /*
+        for the first entriesPerBlock, assign newLoc + 0to LBAlocation
+        for entriesPerBlock to 2* entriesPerBlock, assign newLoc + 1 to LBA location
+        for 2*entriesPerBlock to 3*entriesPerBlock, assign newLoc + 2 to LBA location
+    */
+
     // Initialize . entry in the directory
-    int newLoc = fsAlloc(bm, blocksNeeded);
     printf("From directory_entry.h->initDir: newLoc:%d blocksNeeded:%d\n", newLoc, blocksNeeded);
     time_t tc = time(NULL);
-    newDir[0].LBAlocation = newLoc;
     newDir[0].size = actualEntries * sizeof(DE);
     strcpy(newDir[0].name, ".");
     newDir[0].isDirectory = 1;
@@ -52,7 +65,6 @@ DE *initDir(int minEntries, DE *parent, VolumeControlBlock *vcb, Bitmap *bm)
     strcpy(newDir[1].name, "..");
 
     LBAwrite(newDir, blocksNeeded, newLoc);
-    
+
     return newDir;
 }
-
