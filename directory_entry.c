@@ -1,6 +1,7 @@
 #include "directory_entry.h"
+#include "fsInit.h"
 
-DE *initDir(int minEntries, DE *parent, VolumeControlBlock *vcb, Bitmap *bm)
+DE *initDir(int minEntries, DE *parent, Bitmap * bm)
 {
     int BLOCKSIZE = vcb->block_size;
     int bytesNeeded = minEntries * sizeof(DE);
@@ -8,11 +9,24 @@ DE *initDir(int minEntries, DE *parent, VolumeControlBlock *vcb, Bitmap *bm)
     int bytesToAlloc = blocksNeeded * BLOCKSIZE;
 
     // Allocate memory for the directory
-    DE *newDir = malloc(bytesToAlloc);
+    DE *newDir = (DE *)malloc(bytesToAlloc);
+    if (newDir == NULL)
+	{
+		fprintf(stderr, "vcb Memory allocation failed\n");
+		return NULL;
+	}
+
+	// Initialize all bytes to 0 using a for loop
+	for (uint32_t i = 0; i < bytesToAlloc; i++)
+	{
+		((char *)vcb)[i] = 0;
+	}
 
     // Calculate number of entries that can fit inside the directory block(s)
     int actualEntries = bytesToAlloc / sizeof(DE);
+    printf("From directory_entry.h->initDir:BEFORE fsAlloc:bm->fsNumBlocks:%d, blocksNeeded:%d\n", bm->fsNumBlocks, blocksNeeded);
     int newLoc = fsAlloc(bm, blocksNeeded);
+    printf("From directory_entry.h->initDir: newLoc:%d bm->fsNumBlocks:%d, blocksNeeded:%d\n", newLoc, bm->fsNumBlocks, blocksNeeded);
     int entriesPerBlock = actualEntries / blocksNeeded;
 
     //Init LBAlocations depending on how many entries per block there are.

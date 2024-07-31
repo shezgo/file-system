@@ -19,9 +19,9 @@
 
 #define MIN_ENTRIES 15
 #define CWD_SIZE 256
+#define MAX_DIR_NAME 100
 
-
-extern Bitmap * bitmap;
+extern Bitmap *bm;      //Global declaration of the freespace bitmap
 extern DE *rootGlobal; // Global declaration of the root directory
 extern DE *cwdGlobal;  // Global declaration of the current working directory
 extern char *cwdName; //Global array used to track cwd path string

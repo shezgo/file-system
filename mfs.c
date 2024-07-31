@@ -21,7 +21,7 @@ int findNameInDir(DE *parent, char *name)
     int numEntries = parent->size / sizeof(DE);
     for (int i = 0; i < numEntries; i++)
     {
-        printf("parent[i].name:%s\n", parent[i].name);
+        printf("parent[%d].name:%s\n", i, parent[i].name);
         if (strcmp(parent[i].name, name) == 0)
         {
             return i;
@@ -37,12 +37,52 @@ DE *loadDir(DE *dir)
         fprintf(stderr, "loadDir: DE is not a directory.\n");
         return NULL;
     }
-    if(strcmp(dir->name, rootGlobal->name)== 0){
-
+    if (strcmp(dir->name, rootGlobal->name) == 0)
+    {
         return rootGlobal;
     }
+    if (dir == NULL)
+    {
+        fprintf(stderr, "Cannot load NULL dir\n");
+        return NULL;
+    }
+    /*
+        I need to return a directory that's loaded into memory.
+        What is the data type of a dir loaded into memory?
+        You don't need to load blocks of data into a single
+        datatype. Just load the single DE, it has all the info
+        you need about all its files.
 
-    DE *loadedDir = malloc(dir->dirNumBlocks * vcb->block_size);
+        So you need to get the block from memory, find the
+        index that the directory starts at, and grab a
+        sizeof(DE) amount of bytes from that index to store
+        into a DE*.
+
+        You only ever need one block because a directory will
+        always start on a block boundary, right?
+        Yeah de[0] will always be at de.LBAlocation
+        (remember, de points to &(de[0]).)
+
+        So read block_size bytes into..wait what? Wtf does
+        loadDir do? You can't just point at it to get the
+        metadata?
+
+        No..we want the metadata about every single DE attached
+        to the directory, and this can be a few blocks worth of data.
+        Whoa.
+
+    */
+    int newDirSize = dir->dirNumBlocks * vcb->block_size;
+    DE *loadedDir = malloc(newDirSize);
+    if (loadedDir == NULL)
+    {
+        fprintf(stderr, "loadDir failed\n");
+        return NULL;
+    }
+    for (uint32_t i = 0; i < newDirSize; i++)
+    {
+        ((char *)loadedDir)[i] = 0;
+    }
     LBAread(loadedDir, dir->dirNumBlocks, dir->LBAlocation);
     return loadedDir;
 }
@@ -74,6 +114,8 @@ int freeIfNotNeedDir(DE *dir)
             if (dir != rootGlobal)
             {
                 free(dir);
+                printf("Freeing directory check. dir:%s\n", dir->name);
+
                 return 1;
             }
         }
@@ -102,10 +144,12 @@ int findUnusedDE(DE *parent)
         number of DEs is parent.size/sizeof(DE)
     */
     int numDEs = parent->size / sizeof(DE);
+    printf("from findUnusedDE - parent->size:%ld sizeof(DE):%ld\n", parent->size, sizeof(DE));
     for (int i = 2; i < numDEs; i++)
     {
         if (parent[i].name[0] == '\0')
         {
+            printf("findUnusedDE index:%d", i);
             return i;
         }
     }
@@ -170,6 +214,7 @@ int parsePath(char *path, ppinfo *ppi)
     {
         if (cwdGlobal != NULL)
         {
+
             start = cwdGlobal; // also global already loaded.
             // Keep cwd and rootDir in Ram. When switch dirs, switch the cwd so they
             // never get switched. Root is loaded forever.
@@ -197,40 +242,55 @@ int parsePath(char *path, ppinfo *ppi)
     do
     {
         ppi->le = token1;
+        printf("pp debug in do while - token 1 AKA ppi->le:%s\n", ppi->le ? ppi->le : "NULL");
         // Need helper function findNameInDir - check if token1 (parent) exists
         // This helper function, given the parent and the name (token1), will return an index.
         // Might be -1 (not found) or whatever index.
         ppi->lei = findNameInDir(parent, token1);
+        printf("pp debug - ppi->lei:%d\n", ppi->lei);
         char *saveptr2;
         token2 = strtok_r(NULL, "/", &saveptr2);
+        printf("pp debug - token2:%s\n", token2 ? token2 : "NULL");
+
         // If token2 is null then token1 is the last element.
         if (token2 == NULL)
         {
+            printf("pp debug 3\n");
             // We've already initialized all other ppi fields, complete parent.
             ppi->parent = parent;
+            printf("pp debug 4: ppi->parent->name:%s\n", ppi->parent->name);
             return (0);
         }
         // If token2 is not null, that tells you token1 has to exist and must be a directory.
         if (ppi->lei < 0) // the name doesn’t exist, invalid path
         {
-            fprintf(stderr, "Invalid path");
+            printf("pp debug 1\n");
+            fprintf(stderr, "Invalid path\n");
             return -1;
         }
 
         // Helper function EntryisDir
         if (entryIsDir(parent, ppi->lei) == 0)
         {
-            fprintf(stderr, "Invalid path");
+            printf("pp debug 2\n");
+            fprintf(stderr, "Invalid path\n");
             return -1;
         }
         // Now we know token 1 does exist, is valid, and is a directory. So we want to load it/get
         // that dir
         // Helper function loadDir
+        if (ppi->lei >= (parent->size / sizeof(DE)))
+        {
+            fprintf(stderr, "ppi->lei is out of bounds");
+            return -1;
+        }
         DE *temp = loadDir(&(parent[ppi->lei]));
+
         // Helper function freeIfNotNeedDir(parent)
         freeIfNotNeedDir(parent); // not null, not cwd, not root
         parent = temp;
         token1 = token2;
+
     } while (token2 != NULL);
     // if the index is invalid, get out of here. If the index was valid but not a directory, get out of here.
     // If it was, then valid!
@@ -254,48 +314,61 @@ int fs_mkdir(const char *path, mode_t mode)
         fprintf(stderr, "Failed to duplicate path\n");
         return -1;
     }
+    printf("mkdir: pathCopy:%s\n", pathCopy);
     ppinfo ppi;
     int parseFlag = parsePath(pathCopy, &ppi);
+    printf("mkdir: parseFlag:%d", parseFlag);
     free(pathCopy);
-
     // If parsePath fails
     if (parseFlag != 0)
     {
+        fprintf(stderr, "parsePath failed\n");
+        printf("mkdir debug1\n");
         return (parseFlag);
     }
 
     // If ppi.lei is not -1, then the directory already exists. Return 2.
     if (ppi.lei != -1)
     {
+        fprintf(stderr, "Directory already exists\n");
         return (2);
     }
 
     // Now we know to make a directory.
     // ppi.parent and &(ppi.parent[0]) are identical
-    DE *newDir = initDir(MIN_ENTRIES, ppi.parent, vcb, bitmap);
-
+    printf("from mfs.mkdir: bm->fsNumBlocks:%d", bm->fsNumBlocks);
+    DE *newDir = initDir(MIN_ENTRIES, ppi.parent, bm);
+    if (newDir == NULL)
+    {
+        fprintf(stderr, "Unable to create newDir\n");
+        return -1;
+    }
     // Now find the index of an unused DE in the parent - 0 if failed, index of DE if success
     int x = findUnusedDE(ppi.parent);
 
     if (x == -1)
     {
-        fsRelease(bitmap, newDir->LBAlocation, newDir->dirNumBlocks);
+        fsRelease(bm, newDir->LBAlocation, newDir->dirNumBlocks);
         free(newDir);
         fprintf(stderr, "No unused DE in parent");
         return -1;
     }
     // if it’s not -1, the newDir is the dot entry of newDir (index 0)
     // Assign the newDir to the unused DE in the parent
+    printf("mkdir debug 2\n");
     memcpy(&(ppi.parent[x]), newDir, sizeof(DE));
     strcpy(ppi.parent[x].name, ppi.le);
+    printf("mkdir debug 3\n");
     // Now we need to write/save this directory. Also need to do that in initDir function, let’s make a //helper function
     // This savedir will write the directory to disk. EZ, directories have their blocks tracked.
     // Currently initDir saves a dir to disk. Take that, create a helper function, and use that function both
     // here and there.
     saveDir(newDir);
+    printf("mkdir debug 4\n");
     free(newDir);
     // Helper function:if it’s NULL, the root dir or cwd do not free it; else yes
     freeIfNotNeedDir(ppi.parent);
+    return 0;
 }
 
 //************************************************************************
@@ -326,11 +399,11 @@ fdDir *fs_opendir(const char *pathname)
     }
 
     // Check that path is a directory and load it into memory if so using loadDir
-            printf("opendir debug 1\n");
-    DE *thisDir = loadDir(&ppi.parent[ppi.lei]);
+    // printf("opendir debug: ppi.parent[ppi.lei]->name:%s\nppi.lei:%d\n",(&(ppi.parent[ppi.lei]))->name, ppi.lei );
+    DE *thisDir = loadDir(&(ppi.parent[ppi.lei]));
+
     if (thisDir == NULL)
     {
-        printf("opendir debug 2\n");
         fprintf(stderr, "File is not a directory\n");
         return NULL;
     }
@@ -357,23 +430,38 @@ fdDir *fs_opendir(const char *pathname)
         if (fdDirIP == NULL)
         {
             fprintf(stderr, "fdDir malloc failed");
+            freeIfNotNeedDir(thisDir);
             return NULL;
         }
+
+        for (uint32_t i = 0; i < sizeof(fdDir); i++)
+        {
+            ((char *)fdDirIP)[i] = 0;
+        }
+
         fdDirIP->di = malloc(sizeof(struct fs_diriteminfo));
         if (fdDirIP->di == NULL)
         {
             fprintf(stderr, "fdDirIP->di failed");
             free(fdDirIP);
+            freeIfNotNeedDir(thisDir);
             return NULL;
+        }
+        for (uint32_t i = 0; i < sizeof(struct fs_diriteminfo); i++)
+        {
+            ((char *)fdDirIP->di)[i] = 0;
         }
         // Then I have something to give them
         // "the fdDir structure info pointer" fdDir confirmed
         fdDirIP->di->d_reclen = sizeof(struct fs_diriteminfo);
         fdDirIP->di->fileType = thisDir[x].isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE; // if true set to FT_DIR elseREG
         strncpy(fdDirIP->di->d_name, thisDir[x].name, 255);
-        thisDir->name[strlen(thisDir[x].name)] = '\0';
+        fdDirIP->di->d_name[strlen(thisDir[x].name)] = '\0';
         fdDirIP->directory = &(thisDir[x]);
+        fdDirIP->numEntries = cntEntries;
         fdDirIP->dirEntryPosition = x + 1;
+        // printf("fs_opendir debug\n fdDirIP->di->d_reclen:%d\nfdDirIP->di->d_name: %s\nfdDirIP->directory->name: %s\nfdDirIP->dirEntryPosition:%d\n fdDirIP->numEntries: %d\n",fdDirIP->di->d_reclen,fdDirIP->di->d_name,fdDirIP->directory->name,fdDirIP->dirEntryPosition, fdDirIP->numEntries );
+        freeIfNotNeedDir(thisDir);
         return fdDirIP;
     }
     else
@@ -418,6 +506,7 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
         di will need to keep getting updated depending on the DE. Update all 3 fields.
 
     */
+
     if (dirp == NULL)
     {
         fprintf(stderr, "fDirectory is invalid");
@@ -438,11 +527,32 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
         Yes, to di.
     */
 
+    if (dirp->dirEntryPosition >= dirp->numEntries)
+    {
+        return NULL;
+    }
+
     DE *newDE = &(dirp->directory[dirp->dirEntryPosition]);
+
+    int i = 0;
+    while ((newDE[dirp->dirEntryPosition]).name[0] == '\0' &&
+           dirp->dirEntryPosition < dirp->numEntries)
+    {
+        dirp->dirEntryPosition++;
+        i++;
+    }
+
+    if (dirp->dirEntryPosition >= dirp->numEntries)
+    {
+        printf("No more filled entries in dirp, return\n");
+        return NULL;
+    }
     strncpy(dirp->di->d_name, newDE->name, 255);
     dirp->di->d_name[strlen(dirp->di->d_name)] = '\0';
     dirp->di->fileType = newDE->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE;
     dirp->dirEntryPosition++;
+    // printf("fs_readdir dirp debug\n fdDirIP->di->d_reclen:%d\nfdDirIP->di->d_name: %s\nfdDirIP->directory->name: %s\nfdDirIP->dirEntryPosition:%d\n fdDirIP->numEntries: %d\n",dirp->di->d_reclen,dirp->di->d_name,dirp->directory->name,dirp->dirEntryPosition, dirp->numEntries );
+
     return dirp->di;
 }
 //********************************************************************
@@ -454,7 +564,7 @@ int fs_closedir(fdDir *dirp)
         fprintf(stderr, "Directory doesn't exist");
         return 0;
     }
-    free(dirp->directory);
+    freeIfNotNeedDir(dirp->directory);
     free(dirp->di);
     free(dirp);
     return 1;
@@ -578,7 +688,32 @@ int fs_isDir(char *pathname)
     }
 }
 
+// Returns 0 if success, -1 if failure
 int fs_stat(const char *path, struct fs_stat *buf)
 {
+    if (path == NULL)
+    {
+        fprintf(stderr, "Path is null\n");
+        return -1;
+    }
+
+    // Create a writable copy of the path
+    char *pathCopy = strdup(path);
+    if (pathCopy == NULL)
+    {
+        fprintf(stderr, "Failed to duplicate path\n");
+        return -1;
+    }
+    ppinfo ppi;
+    int parseFlag = parsePath(pathCopy, &ppi);
+    free(pathCopy);
+
+    DE *de = &(ppi.parent[ppi.lei]);
+    buf->st_size = de->size;
+    buf->st_blksize = vcb->block_size;
+    buf->st_blocks = vcb->total_blocks;
+    buf->st_accesstime = de->lastAccessed;
+    buf->st_modtime = de->lastModified;
+    buf->st_createtime = de->timeCreation;
     return 0;
 }

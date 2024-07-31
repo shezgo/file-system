@@ -27,6 +27,7 @@
 #include <dirent.h>
 #include "directory_entry.h"
 #include "fsInit.h"
+#include <sys/stat.h>
 
 #define FT_REGFILE	DT_REG
 #define FT_DIRECTORY DT_DIR
@@ -60,6 +61,7 @@ typedef struct
 	unsigned short	dirEntryPosition;	/* which directory entry position, like file pos */
 	DE *directory;			/* Pointer to the loaded directory you want to iterate */
 	struct fs_diriteminfo * di;		/* Pointer to the structure you return from read */
+	unsigned short numEntries; //Number of entries in directory
 	} fdDir;
 /*
 ppInfo is used as a return structure for parsePath info
@@ -117,6 +119,7 @@ struct fs_stat
 	/* add additional attributes here for your file system */
 	};
 
+//Returns 0 if success, -1 if failure
 int fs_stat(const char *path, struct fs_stat *buf);
 
 #endif

@@ -66,6 +66,7 @@ int fsAlloc(Bitmap *bm, int req)
     // Check if req is a valid value
     if (req <= 0 || req > bm->fsNumBlocks)
     {
+        printf("fsAlloc: req:%d\n bm->fsNumBlocks:%d\n", req, bm->fsNumBlocks);
         fprintf(stderr, "Invalid request size\n");
         return -1;
     }
@@ -175,11 +176,16 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize)
         fprintf(stderr, "Failed to allocate memory for Bitmap structure\n");
         exit(EXIT_FAILURE);
     }
+    for (uint32_t i = 0; i < sizeof(Bitmap); i++)
+	{
+		((char *)bm)[i] = 0;
+	}
 
     // Allocate the size for bitmap - Convert the num bytes to num bits for bitmap malloc
     int blocksToBitsInBytes = (fsNumBlocks + 7) / 8;
     
     bm->fsNumBlocks = fsNumBlocks;
+    printf("bitmap.c 188: bm->fsNumBlocks: %d, fsNumBlocks: %d\n", bm->fsNumBlocks, fsNumBlocks);
     //Below operation works because of int division.
     int roundedBytes = ((blocksToBitsInBytes + blockSize - 1)/ blockSize) * blockSize;
     printf("BITMAP.C>initBitmap: roundedBytes: %d\n", roundedBytes);

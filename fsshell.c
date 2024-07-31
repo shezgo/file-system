@@ -42,7 +42,7 @@
 #define CMDLS_ON	1
 #define CMDCP_ON	0
 #define CMDMV_ON	0
-#define CMDMD_ON	0
+#define CMDMD_ON	1
 #define CMDRM_ON	0
 #define CMDCP2L_ON	0
 #define CMDCP2FS_ON	0
@@ -102,11 +102,12 @@ int displayFiles (fdDir * dirp, int flall, int fllong)
 	
 	struct fs_diriteminfo * di;
 	struct fs_stat statbuf;
-	
 	di = fs_readdir (dirp);
 	printf("\n");
+
 	while (di != NULL) 
 		{
+
 		if ((di->d_name[0] != '.') || (flall)) //if not all and starts with '.' it is hidden
 			{
 			if (fllong)
@@ -225,14 +226,10 @@ int cmd_ls (int argcnt, char *argvec[])
 		}
 	else   // no pathname/filename specified - use cwd
 		{
-			printf("debug 1\n");
 		char * path = fs_getcwd(cwd, DIRMAX_LEN);	//get current working directory
-					printf("debug 2\n");
-					printf("path value:%s\n", path);
 
 		fdDir * dirp;
 		dirp = fs_opendir (path);
-					printf("debug 3\n");
 
 		return (displayFiles (dirp, flall, fllong));
 		}
