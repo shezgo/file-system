@@ -8,7 +8,7 @@
  *
  * File:: directory_entry.h
  *
- * Description:: Holds DirectoryEntry struct
+ * Description:: Holds directory entry struct and operations.
  *
  *
  *

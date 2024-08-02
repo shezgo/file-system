@@ -1,3 +1,18 @@
+/**************************************************************
+ * Class::  CSC-415-01 Summer 2024
+ * Name:: Shez Rahman, Austin Kuykendall, Robel Ayelew, Awet Fikadu
+ * Student IDs:: 916867424, 920222066, 922419937, 922130310
+ * GitHub-Name:: shezgo
+ * Group-Name:: Spork
+ * Project:: Basic File System
+ *
+ * File:: volume_control_block.c
+ *
+ * Description:: Holds VolumeControlBlock struct and functions
+ *
+ * 
+ *
+ **************************************************************/
 #include "volume_control_block.h"
 
 VolumeControlBlock *loadVCBtoMem(uint64_t blockSize)

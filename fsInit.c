@@ -34,10 +34,10 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 	vcb = loadVCBtoMem(blockSize);
 
-	// ************************************************
+	// ********************************************************************************************
 	// If the file system has already been mounted,  read in all variables into
 	// memory so they are initialized.
-	// ************************************************
+	// ********************************************************************************************
 
 	if (vcb->signature == 0x1A)
 	{
@@ -73,9 +73,9 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 		return 0;
 	}
-	// *****************************************
-	//End if file system is already mounted
-	// *****************************************
+	// ********************************************************************************************
+	// End if file system is already mounted
+	// ********************************************************************************************
 
 	printf("Mounting file system\n");
 
@@ -124,5 +124,9 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 void exitFileSystem()
 {
+	free(vcb);
+	free(rootGlobal);
+	free(bitmap_bm);
+	free(bm);
 	printf("System exiting\n");
 }

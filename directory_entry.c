@@ -1,3 +1,19 @@
+/**************************************************************
+ * Class::  CSC-415-01 Summer 2024
+ * Name:: Shez Rahman, Austin Kuykendall, Robel Ayelew, Awet Fikadu
+ * Student IDs:: 916867424, 920222066, 922419937, 922130310
+ * GitHub-Name:: shezgo
+ * Group-Name:: Spork
+ * Project:: Basic File System
+*
+* File:: directory_entry.c
+*
+* Description:: 
+*	This is used for directory_entry operations
+*	
+*	
+*
+**************************************************************/
 #include "directory_entry.h"
 #include "fsInit.h"
 

@@ -1,3 +1,19 @@
+/**************************************************************
+ * Class::  CSC-415-01 Summer 2024
+ * Name:: Shez Rahman, Austin Kuykendall, Robel Ayelew, Awet Fikadu
+ * Student IDs:: 916867424, 920222066, 922419937, 922130310
+ * GitHub-Name:: shezgo
+ * Group-Name:: Spork
+ * Project:: Basic File System
+*
+* File:: bitmap.h
+*
+* Description:: 
+*	This is used to interact with the free space bitmap
+*	
+*	
+*
+**************************************************************/
 #ifndef BITMAP_H
 #define BITMAP_H
 
@@ -32,7 +48,7 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t * bm_bitmap);
 //Write the bitmap to memory
 uint8_t *loadBMtoMem(int blockSize);
 //LBAwrite the freespace bitmap
-void mapToDisk(Bitmap *bm);
+int mapToDisk(Bitmap *bm);
 
 
 

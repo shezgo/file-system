@@ -8,7 +8,7 @@
  *
  * File:: volume_control_block.h
  *
- * Description:: Holds VolumeControlBlock struct
+ * Description:: Holds VolumeControlBlock struct and functions
  *
  * 
  *

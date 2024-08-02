@@ -1,18 +1,33 @@
+/**************************************************************
+ * Class::  CSC-415-01 Summer 2024
+ * Name:: Shez Rahman, Austin Kuykendall, Robel Ayelew, Awet Fikadu
+ * Student IDs:: 916867424, 920222066, 922419937, 922130310
+ * GitHub-Name:: shezgo
+ * Group-Name:: Spork
+ * Project:: Basic File System
+*
+* File:: bitmap.c
+*
+* Description:: 
+*	This is used to interact with the free space bitmap
+*	
+*	
+*
+**************************************************************/
 #ifndef BITMAP_C
 #define BITMAP_C
 
 #include "bitmap.h"
 
 // Function to LBAwrite the freespace bitmap
-void mapToDisk(Bitmap *bm)
+int mapToDisk(Bitmap *bm)
 {
-    LBAwrite(bm->bitmap, bm->mapNumBlocks, 1);
-    return;
+    int ret = LBAwrite(bm->bitmap, bm->mapNumBlocks, 1);
+    return ret;
 }
 // Function to set a bit (mark block as used). Returns 1 if success, -1 if failure.
 int setBit(Bitmap *bm, int blockNumber)
 {
-    printf("From bitmap.c->setBit: setting blockNumber: %d\n", blockNumber);
     if (blockNumber < bm->fsNumBlocks)
     {
         int byteIndex = blockNumber / 8;
@@ -74,7 +89,6 @@ int fsAlloc(Bitmap *bm, int req)
     // Check if req is a valid value
     if (req <= 0 || req > bm->fsNumBlocks)
     {
-        printf("fsAlloc: req:%d\n bm->fsNumBlocks:%d\n", req, bm->fsNumBlocks);
         fprintf(stderr, "Invalid request size\n");
         return -1;
     }
@@ -107,7 +121,6 @@ int fsAlloc(Bitmap *bm, int req)
                     {
                         for (int i = startBlock; i < startBlock + req; i++)
                         {
-                            printf("From bitmap.c->fsAlloc: setting bit: %d\n", i);
                             setBit(bm, i); // mark the blocks as used for the space requester
                         }
 
@@ -204,12 +217,10 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t *bm_bitmap)
     int blocksToBitsInBytes = (fsNumBlocks + 7) / 8;
 
     bm->fsNumBlocks = fsNumBlocks;
-    printf("bitmap.c 188: bm->fsNumBlocks: %d, fsNumBlocks: %d\n", bm->fsNumBlocks, fsNumBlocks);
     // Below operation works because of int division.
     int roundedBytes = ((blocksToBitsInBytes + blockSize - 1) / blockSize) * blockSize;
-    printf("BITMAP.C>initBitmap: roundedBytes: %d\n", roundedBytes);
 
-    //IF file system has not been initialized yet, it'll pass NULL.
+    //IF file system has not been initialized yet, this function will receive null as a parameter.
     if (bm_bitmap == NULL)
     {
         bm->bitmap = (uint8_t *)malloc(roundedBytes);
@@ -227,7 +238,7 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t *bm_bitmap)
             bm->bitmap[i] = 0;
         }
 
-        /*Set the bits that we know are going to be occupied. This includes the VCB in logical block 0,
+        /*Set the bits that we know are going to be occupied. This includes the VCB in logical b0,
         but physical block 0 contains Professor's partition table. Also set blocks needed
         to store the free space map.
         Per "steps for milestone 1 pdf" do not free the bitmap buffer. Keep it in memory and
@@ -235,7 +246,6 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t *bm_bitmap)
 
         bm->mapNumBlocks = (blocksToBitsInBytes + blockSize - 1) / blockSize;
         bm->bitmapSize = bm->mapNumBlocks * blockSize;
-        printf("From directory_entry.h-> initBitmap: mapNumBlocks:%d\n", bm->mapNumBlocks);
 
         for (int i = 0; i <= bm->mapNumBlocks; i++)
         {
@@ -248,7 +258,6 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t *bm_bitmap)
         bm->bitmap = bm_bitmap;
         bm->mapNumBlocks = (blocksToBitsInBytes + blockSize - 1) / blockSize;
         bm->bitmapSize = bm->mapNumBlocks * blockSize;
-        printf("\nIf bitmap has already been initialized. bm->bitmapSize:%d\n", bm->bitmapSize);
     }
 
     //  LBAwrite the bitmap at correct locations
@@ -269,13 +278,7 @@ uint8_t *loadBMtoMem(int blockSize)
     }
 
     int bmLoadReturn = LBAread(buffer, vcb->fsmap_num_blocks, vcb->fsmap_start_block);
-    // if you want the other stuff inside the struct, you'd have to add it in.
-    /*
-    Options:
-    1.add an extra block of memory at the end of the fsBitmap that contains
-    data about the bitmap
-    2. just store all data about the bitmap in the vcb. This is WAY easier.
-    */
+
     return buffer;
 }
 
