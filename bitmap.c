@@ -251,14 +251,16 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize)
 Bitmap *loadBMtoMem(int blockSize)
 {
     VolumeControlBlock *vcb = loadVCBtoMem(blockSize);
-    void *buffer = malloc(blockSize);
+    printf("from loadBmtoMem: vcb->fsmap_num_blocks:%d\n",vcb->fsmap_num_blocks);
+    void *buffer = malloc(blockSize * vcb->fsmap_num_blocks);
     if (buffer == NULL)
     {
         perror("Failed to load bitmap to memory\n");
         exit(EXIT_FAILURE);
     }
 
-    LBAread(buffer, vcb->fsmap_num_blocks, vcb->fsmap_start_block);
+    int bmLoadReturn = LBAread(buffer, vcb->fsmap_num_blocks, vcb->fsmap_start_block);
+    printf("bmLoadReturn:%d\n", bmLoadReturn);
     return (Bitmap *)buffer;
 }
 

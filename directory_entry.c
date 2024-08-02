@@ -12,14 +12,14 @@ DE *initDir(int minEntries, DE *parent, Bitmap * bm)
     DE *newDir = (DE *)malloc(bytesToAlloc);
     if (newDir == NULL)
 	{
-		fprintf(stderr, "vcb Memory allocation failed\n");
+		fprintf(stderr, "New directory memory allocation failed\n");
 		return NULL;
 	}
 
 	// Initialize all bytes to 0 using a for loop
 	for (uint32_t i = 0; i < bytesToAlloc; i++)
 	{
-		((char *)vcb)[i] = 0;
+		((char *)newDir)[i] = 0;
 	}
 
     // Calculate number of entries that can fit inside the directory block(s)

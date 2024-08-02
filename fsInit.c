@@ -38,6 +38,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	// memory so they are initialized.
 	if (vcb->signature == 0x1A)
 	{
+		printf("Loading mounted file system\n");
 		bm = loadBMtoMem(blockSize);
 		rootGlobal = initDir(MIN_ENTRIES, NULL, bm);
 		//Always start cwd from root when starting up file system.
@@ -61,6 +62,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		
 		return 1;
 	}
+	printf("Mounting file system\n");
 
 	// If the volume hasn't been initialized
 	//  Clear all memory for vcb before initializing and writing
@@ -91,8 +93,8 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	vcb->free_blocks = vcb->total_blocks - vcb->fsmap_num_blocks - 2; // subtract blocks for bitmap, vcb, root
 	vcb->signature = 0x1A;								  // This is an arbitrary number to check if already initialized
 	vcb->fsmap_start_block = 1;
-	vcb->fsmap_end_block = vcb->fsmap_num_blocks + 1;
-	vcb->fsmap_num_blocks = (vcb->fsmap_end_block - vcb->fsmap_start_block + 1);
+	vcb->fsmap_end_block = bm->mapNumBlocks + 1;
+	vcb->fsmap_num_blocks = bm->mapNumBlocks;
 
 	// Initialize and write root directory to disk. VCB root_start_block gets initialized
 	// in the initDir function, so writing vcb to disk must happen after.
