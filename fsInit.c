@@ -39,40 +39,40 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	// memory so they are initialized.
 	// ************************************************
 
-	// if (vcb->signature == 0x1A)
-	// {
-	// 	printf("Loading mounted file system\n");
-	// 	bitmap_bm = loadBMtoMem(blockSize);
-	// 	bm = initBitmap(numberOfBlocks, blockSize, bitmap_bm);
+	if (vcb->signature == 0x1A)
+	{
+		printf("Loading mounted file system\n");
+		bitmap_bm = loadBMtoMem(blockSize);
+		bm = initBitmap(numberOfBlocks, blockSize, bitmap_bm);
 		
-	// 	printf("bm->mapNumBlocks:%d\n",bm->mapNumBlocks);
-	// 	rootGlobal = initDir(MIN_ENTRIES, NULL, bm);
-	// 	//Always start cwd from root when starting up file system.
-	// 	printf("\nfsInit isBitUsed(bm, 12): %d\n\n", isBitUsed(bm, 12));
+		printf("bm->mapNumBlocks:%d\n",bm->mapNumBlocks);
+		rootGlobal = loadDirLBA(vcb->root_num_blocks, vcb->root_directory_block);
+		//Always start cwd from root when starting up file system.
+		printf("\nfsInit isBitUsed(bm, 12): %d\n\n", isBitUsed(bm, 12));
 		
-	// 	if(rootGlobal == NULL){
-	// 		fprintf(stderr, "Initializing root failed\n");
-	// 		return -1;
-	// 	}
+		if(rootGlobal == NULL){
+			fprintf(stderr, "Initializing root failed\n");
+			return -1;
+		}
 		
-	// 	cwdGlobal = rootGlobal; 
+		cwdGlobal = rootGlobal; 
 		
-	// 	// Initialize a global current working directory name string
-	// 	cwdName = (char *)malloc(CWD_SIZE);
-	// 	if (cwdName == NULL)
-	// 	{
-	// 		fprintf(stderr, "cwdName memory allocation failed\n");
-	// 		return -1;
-	// 	}
-	// 	for (uint32_t i = 0; i < CWD_SIZE; i++)
-	// 	{
-	// 		cwdName[i] = '\0';
-	// 	}
-	// 	strcpy(cwdName, "/");
-	// 	// end init cwdName
+		// Initialize a global current working directory name string
+		cwdName = (char *)malloc(CWD_SIZE);
+		if (cwdName == NULL)
+		{
+			fprintf(stderr, "cwdName memory allocation failed\n");
+			return -1;
+		}
+		for (uint32_t i = 0; i < CWD_SIZE; i++)
+		{
+			cwdName[i] = '\0';
+		}
+		strcpy(cwdName, "/");
+		// end init cwdName
 
-	// 	return 0;
-	// }
+		return 0;
+	}
 	// *****************************************
 	//End if file system is already mounted
 	// *****************************************

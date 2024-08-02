@@ -227,7 +227,7 @@ int parsePath(char *path, ppinfo *ppi)
             fprintf(stderr, "ppi->lei is out of bounds");
             return -1;
         }
-        DE *temp = loadDir(&(parent[ppi->lei]));
+        DE *temp = loadDirDE(&(parent[ppi->lei]));
 
         // Helper function freeIfNotNeedDir(parent)
         freeIfNotNeedDir(parent); // not null, not cwd, not root
@@ -343,7 +343,7 @@ fdDir *fs_opendir(const char *pathname)
 
     // Check that path is a directory and load it into memory if so using loadDir
     // printf("opendir debug: ppi.parent[ppi.lei]->name:%s\nppi.lei:%d\n",(&(ppi.parent[ppi.lei]))->name, ppi.lei );
-    DE *thisDir = loadDir(&(ppi.parent[ppi.lei]));
+    DE *thisDir = loadDirDE(&(ppi.parent[ppi.lei]));
 
     if (thisDir == NULL)
     {

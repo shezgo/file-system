@@ -73,6 +73,7 @@ DE *initDir(int minEntries, DE *parent, Bitmap *bm)
     {
         dotdot = newDir;
         vcb->root_directory_block = newDir->LBAlocation;
+        vcb->root_num_blocks = blocksNeeded;
     }
 
     memcpy(&newDir[1], dotdot, sizeof(DE));
@@ -84,7 +85,7 @@ DE *initDir(int minEntries, DE *parent, Bitmap *bm)
 }
 
 // Loads a directory into memory for manipulation
-DE *loadDir(DE *dir)
+DE *loadDirDE(DE *dir)
 {
     if (dir->isDirectory == 0)
     {
@@ -101,7 +102,7 @@ DE *loadDir(DE *dir)
         return NULL;
     }
     //New code starts here
-    void *buffer = malloc(vcb->block_size);
+    void *buffer = malloc(dir->dirNumBlocks *vcb->block_size);
 
     if (buffer == NULL) {
         perror("Failed to allocate for buffer in loadDir\n");
@@ -110,9 +111,32 @@ DE *loadDir(DE *dir)
 
     int readReturn = LBAread(buffer, dir->dirNumBlocks,dir->LBAlocation);
 
-    if (readReturn != 1)
+    if (readReturn != dir->dirNumBlocks)
     {
-        perror("Failed to read directory from disk\n");
+        perror("Failed to loadDirDE\n");
+        free(buffer);
+        exit(EXIT_FAILURE);
+    }
+    
+    return (DE *) buffer;
+}
+
+DE *loadDirLBA(int numBlocks, int startBlock)
+{
+
+    //New code starts here
+    void *buffer = malloc(numBlocks * vcb->block_size);
+
+    if (buffer == NULL) {
+        perror("Failed to allocate for buffer in loadDir\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int readReturn = LBAread(buffer, numBlocks, startBlock);
+
+    if (readReturn != numBlocks)
+    {
+        perror("Failed to loadDirLBA\n");
         free(buffer);
         exit(EXIT_FAILURE);
     }
