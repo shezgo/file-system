@@ -1,7 +1,7 @@
 #include "directory_entry.h"
 #include "fsInit.h"
 
-DE *initDir(int minEntries, DE *parent, Bitmap * bm)
+DE *initDir(int minEntries, DE *parent, Bitmap *bm)
 {
     int BLOCKSIZE = vcb->block_size;
     int bytesNeeded = minEntries * sizeof(DE);
@@ -24,9 +24,9 @@ DE *initDir(int minEntries, DE *parent, Bitmap * bm)
 
     // Calculate number of entries that can fit inside the directory block(s)
     int actualEntries = bytesToAlloc / sizeof(DE);
-    printf("From directory_entry.h->initDir:BEFORE fsAlloc:bm->fsNumBlocks:%d, blocksNeeded:%d\n", bm->fsNumBlocks, blocksNeeded);
+    printf("From directory_entry.c->initDir:BEFORE fsAlloc:bm->fsNumBlocks:%d, blocksNeeded:%d\n", bm->fsNumBlocks, blocksNeeded);
     int newLoc = fsAlloc(bm, blocksNeeded);
-    printf("From directory_entry.h->initDir: newLoc:%d bm->fsNumBlocks:%d, blocksNeeded:%d\n", newLoc, bm->fsNumBlocks, blocksNeeded);
+    printf("From directory_entry.c->initDir: newLoc:%d bm->fsNumBlocks:%d, blocksNeeded:%d\n", newLoc, bm->fsNumBlocks, blocksNeeded);
     int entriesPerBlock = actualEntries / blocksNeeded;
 
     //Init LBAlocations depending on how many entries per block there are.
@@ -81,4 +81,41 @@ DE *initDir(int minEntries, DE *parent, Bitmap * bm)
     LBAwrite(newDir, blocksNeeded, newLoc);
 
     return newDir;
+}
+
+// Loads a directory into memory for manipulation
+DE *loadDir(DE *dir)
+{
+    if (dir->isDirectory == 0)
+    {
+        fprintf(stderr, "loadDir: DE is not a directory.\n");
+        return NULL;
+    }
+    if (strcmp(dir->name, rootGlobal->name) == 0)
+    {
+        return rootGlobal;
+    }
+    if (dir == NULL)
+    {
+        fprintf(stderr, "Cannot load NULL dir\n");
+        return NULL;
+    }
+    //New code starts here
+    void *buffer = malloc(vcb->block_size);
+
+    if (buffer == NULL) {
+        perror("Failed to allocate for buffer in loadDir\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int readReturn = LBAread(buffer, dir->dirNumBlocks,dir->LBAlocation);
+
+    if (readReturn != 1)
+    {
+        perror("Failed to read directory from disk\n");
+        free(buffer);
+        exit(EXIT_FAILURE);
+    }
+    
+    return (DE *) buffer;
 }

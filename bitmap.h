@@ -28,9 +28,9 @@ int fsAlloc(Bitmap *bm, int req);
 //To be implemented
 int fsRelease(Bitmap* bm, int startBlock, int count);
 //Initialize the bitmap
-Bitmap *initBitmap(int fsNumBlocks, int blockSize);
+Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t * bm_bitmap);
 //Write the bitmap to memory
-Bitmap *loadBMtoMem(int blockSize);
+uint8_t *loadBMtoMem(int blockSize);
 //LBAwrite the freespace bitmap
 void mapToDisk(Bitmap *bm);
 

@@ -29,63 +29,6 @@ int findNameInDir(DE *parent, char *name)
     }
     return -1;
 }
-// Loads a directory into memory for manipulation
-DE *loadDir(DE *dir)
-{
-    if (dir->isDirectory == 0)
-    {
-        fprintf(stderr, "loadDir: DE is not a directory.\n");
-        return NULL;
-    }
-    if (strcmp(dir->name, rootGlobal->name) == 0)
-    {
-        return rootGlobal;
-    }
-    if (dir == NULL)
-    {
-        fprintf(stderr, "Cannot load NULL dir\n");
-        return NULL;
-    }
-    /*
-        I need to return a directory that's loaded into memory.
-        What is the data type of a dir loaded into memory?
-        You don't need to load blocks of data into a single
-        datatype. Just load the single DE, it has all the info
-        you need about all its files.
-
-        So you need to get the block from memory, find the
-        index that the directory starts at, and grab a
-        sizeof(DE) amount of bytes from that index to store
-        into a DE*.
-
-        You only ever need one block because a directory will
-        always start on a block boundary, right?
-        Yeah de[0] will always be at de.LBAlocation
-        (remember, de points to &(de[0]).)
-
-        So read block_size bytes into..wait what? Wtf does
-        loadDir do? You can't just point at it to get the
-        metadata?
-
-        No..we want the metadata about every single DE attached
-        to the directory, and this can be a few blocks worth of data.
-        Whoa.
-
-    */
-    int newDirSize = dir->dirNumBlocks * vcb->block_size;
-    DE *loadedDir = malloc(newDirSize);
-    if (loadedDir == NULL)
-    {
-        fprintf(stderr, "loadDir failed\n");
-        return NULL;
-    }
-    for (uint32_t i = 0; i < newDirSize; i++)
-    {
-        ((char *)loadedDir)[i] = 0;
-    }
-    LBAread(loadedDir, dir->dirNumBlocks, dir->LBAlocation);
-    return loadedDir;
-}
 
 // Checks if the DE in parent is a directory. 1 if true, 0 if false.
 int entryIsDir(DE *parent, int deIndex)

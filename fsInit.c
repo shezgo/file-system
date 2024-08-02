@@ -21,7 +21,7 @@ DE *rootGlobal = NULL;			// Global definition, always kept in memory
 DE *cwdGlobal = NULL;			// Global definition, always kept in memory
 char *cwdName = NULL;			// Global char* used to track cwd path string
 Bitmap *bm = NULL;				// Global declaration of the freespace bitmap
-
+uint8_t *bitmap_bm = NULL;		// Actual bitmap array
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 {
 	// This error check guarantees that the vcb can fit in block 0.
@@ -34,34 +34,49 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 	vcb = loadVCBtoMem(blockSize);
 
+	// ************************************************
 	// If the file system has already been mounted,  read in all variables into
 	// memory so they are initialized.
-	if (vcb->signature == 0x1A)
-	{
-		printf("Loading mounted file system\n");
-		bm = loadBMtoMem(blockSize);
-		rootGlobal = initDir(MIN_ENTRIES, NULL, bm);
-		//Always start cwd from root when starting up file system.
-		cwdGlobal = rootGlobal; 
+	// ************************************************
 
-		// Initialize a global current working directory name string
-		cwdName = (char *)malloc(CWD_SIZE);
-		if (cwdName == NULL)
-		{
-			fprintf(stderr, "cwdName memory allocation failed\n");
-			return -1;
-		}
-		for (uint32_t i = 0; i < CWD_SIZE; i++)
-		{
-			cwdName[i] = '\0';
-		}
-		strcpy(cwdName, "/");
-		// end init cwdName
-
-
+	// if (vcb->signature == 0x1A)
+	// {
+	// 	printf("Loading mounted file system\n");
+	// 	bitmap_bm = loadBMtoMem(blockSize);
+	// 	bm = initBitmap(numberOfBlocks, blockSize, bitmap_bm);
 		
-		return 1;
-	}
+	// 	printf("bm->mapNumBlocks:%d\n",bm->mapNumBlocks);
+	// 	rootGlobal = initDir(MIN_ENTRIES, NULL, bm);
+	// 	//Always start cwd from root when starting up file system.
+	// 	printf("\nfsInit isBitUsed(bm, 12): %d\n\n", isBitUsed(bm, 12));
+		
+	// 	if(rootGlobal == NULL){
+	// 		fprintf(stderr, "Initializing root failed\n");
+	// 		return -1;
+	// 	}
+		
+	// 	cwdGlobal = rootGlobal; 
+		
+	// 	// Initialize a global current working directory name string
+	// 	cwdName = (char *)malloc(CWD_SIZE);
+	// 	if (cwdName == NULL)
+	// 	{
+	// 		fprintf(stderr, "cwdName memory allocation failed\n");
+	// 		return -1;
+	// 	}
+	// 	for (uint32_t i = 0; i < CWD_SIZE; i++)
+	// 	{
+	// 		cwdName[i] = '\0';
+	// 	}
+	// 	strcpy(cwdName, "/");
+	// 	// end init cwdName
+
+	// 	return 0;
+	// }
+	// *****************************************
+	//End if file system is already mounted
+	// *****************************************
+
 	printf("Mounting file system\n");
 
 	// If the volume hasn't been initialized
@@ -86,7 +101,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	printf("Initializing File System with %ld blocks with a block size of %ld\n", numberOfBlocks,
 		   blockSize);
 
-	bm = initBitmap(numberOfBlocks, blockSize);
+	bm = initBitmap(numberOfBlocks, blockSize, NULL);
 
 	vcb->block_size = blockSize;
 	vcb->total_blocks = numberOfBlocks;
@@ -102,7 +117,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	//Current working directory always starts at root when starting file system.
 	cwdGlobal = rootGlobal; 
 	strcpy(cwdName, "/");
-	int vcbReturn = LBAwrite(vcb, 1, 0);
+	int vcbWriteReturn = LBAwrite(vcb, 1, 0);
 
 	return 0;
 }

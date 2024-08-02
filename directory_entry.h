@@ -25,6 +25,10 @@
 
 #define NAME 31
 
+extern VolumeControlBlock *vcb; // Global definition, always kept in memory 
+extern Bitmap *bm;      //Global declaration of the freespace bitmap
+
+
 //To find the logical address of a DE within its parent directory, just use
 //index in its parent directory * sizeof(DE).
 typedef struct DE
@@ -45,5 +49,6 @@ typedef struct DE
 // Since this is a pointer, we'll want this loaded into RAM. For root dir, parent will point to null
 // so just pass in null.
 DE *initDir(int minEntries, DE *parent, Bitmap *bm);
+DE *loadDir(DE *dir); //loads a directory into memory
 
 #endif
