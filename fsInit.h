@@ -28,5 +28,6 @@ extern char *cwdName; //Global array used to track cwd path string
 extern VolumeControlBlock *vcb; // Global definition, always kept in memory 
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize);
 void exitFileSystem();
+VolumeControlBlock* loadVCBtoMem(uint64_t blockSize);
 
 #endif // FSINIT_H

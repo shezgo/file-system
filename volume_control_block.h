@@ -16,6 +16,9 @@
 
 #include <stdint.h>
 #include "fsLow.h"
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifndef _VOLUME_CONTROL_BLOCK_H
 #define _VOLUME_CONTROL_BLOCK_H
 

@@ -38,7 +38,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	// memory so they are initialized.
 	if (vcb->signature == 0x1A)
 	{
-		bm = loadBMtoMem;
+		bm = loadBMtoMem(blockSize);
 		rootGlobal = initDir(MIN_ENTRIES, NULL, bm);
 		//Always start cwd from root when starting up file system.
 		cwdGlobal = rootGlobal; 

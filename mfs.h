@@ -40,6 +40,12 @@ typedef u_int64_t uint64_t;
 typedef u_int32_t uint32_t;
 #endif
 
+extern Bitmap *bm;      //Global declaration of the freespace bitmap
+extern DE *rootGlobal; // Global declaration of the root directory
+extern DE *cwdGlobal;  // Global declaration of the current working directory
+extern char *cwdName; //Global array used to track cwd path string
+extern VolumeControlBlock *vcb; // Global definition, always kept in memory 
+
 // This structure is returned by fs_readdir to provide the caller with information
 // about each file as it iterates through a directory
 struct fs_diriteminfo

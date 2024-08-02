@@ -20,10 +20,10 @@ int setBit(Bitmap *bm, int blockNumber)
         bm->bitmap[byteIndex] |= (1 << bitIndex);
         mapToDisk(bm);
 
-        VolumeControlBlock *vcb = loadVCBtoMem;
+   
         vcb->free_blocks--;
         writeVCBtoDisk(vcb);
-        free(vcb);
+
 
         return 1;
     }
@@ -43,10 +43,10 @@ int clearBit(Bitmap *bm, int blockNumber)
         bm->bitmap[byteIndex] &= ~(1 << bitIndex);
         mapToDisk(bm);
 
-        VolumeControlBlock *vcb = loadVCBtoMem;
+
         vcb->free_blocks++;
         writeVCBtoDisk(vcb);
-        free(vcb);
+
         return 1;
     }
     else
@@ -114,10 +114,10 @@ int fsAlloc(Bitmap *bm, int req)
                             setBit(bm, i); // mark the blocks as used for the space requester
                         }
 
-                        VolumeControlBlock *vcb = loadVCBtoMem;
+                        
                         vcb->free_blocks -= req;
                         writeVCBtoDisk(vcb);
-                        free(vcb);
+                   
 
                         return startBlock;
                     }
@@ -183,11 +183,11 @@ int fsRelease(Bitmap *bm, int startBlock, int count)
             return -1;
         }
     }
-    VolumeControlBlock *vcb = loadVCBtoMem;
+
     vcb->free_blocks+= count;
     writeVCBtoDisk(vcb);
-    free(vcb);
-    
+
+
     return 1;
 }
 

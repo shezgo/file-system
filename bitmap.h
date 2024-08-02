@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+extern VolumeControlBlock *vcb; // Global definition, always kept in memory 
 
 typedef struct Bitmap
 {
