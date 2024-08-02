@@ -16,8 +16,6 @@ typedef struct Bitmap
 } Bitmap;
 
 
-// Function to LBAwrite the freespace bitmap
-void mapToDisk(Bitmap *bm);
 // Function to set a bit (mark block as used)
 int setBit(Bitmap *bm, int blockNumber);
 // Function to clear a bit (mark block as free)
@@ -30,6 +28,11 @@ int fsAlloc(Bitmap *bm, int req);
 int fsRelease(Bitmap* bm, int startBlock, int count);
 //Initialize the bitmap
 Bitmap *initBitmap(int fsNumBlocks, int blockSize);
+//Write the bitmap to memory
+Bitmap *loadBMtoMem(int blockSize);
+//LBAwrite the freespace bitmap
+void mapToDisk(Bitmap *bm);
+
 
 
 

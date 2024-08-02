@@ -15,6 +15,7 @@
  **************************************************************/
 
 #include <stdint.h>
+#include "fsLow.h"
 #ifndef _VOLUME_CONTROL_BLOCK_H
 #define _VOLUME_CONTROL_BLOCK_H
 
@@ -28,7 +29,11 @@ typedef struct VolumeControlBlock
     uint32_t root_directory_block;//(block number) the location of the root directory)
     uint32_t fsmap_start_block;//Stores the index of first block containing the free space map
     uint32_t fsmap_end_block;//Stores the index of last block containing the free space map
+    uint32_t fsmap_num_blocks;//Stores the number of blocks needed for freespace map
 } VolumeControlBlock;
+
+VolumeControlBlock* loadVCBtoMem(uint64_t blockSize);
+int writeVCBtoDisk(VolumeControlBlock * vcb);
 
 
 #endif

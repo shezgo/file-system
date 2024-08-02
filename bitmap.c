@@ -19,6 +19,12 @@ int setBit(Bitmap *bm, int blockNumber)
         int bitIndex = blockNumber % 8;
         bm->bitmap[byteIndex] |= (1 << bitIndex);
         mapToDisk(bm);
+
+        VolumeControlBlock *vcb = loadVCBtoMem;
+        vcb->free_blocks--;
+        writeVCBtoDisk(vcb);
+        free(vcb);
+
         return 1;
     }
     else
@@ -36,6 +42,11 @@ int clearBit(Bitmap *bm, int blockNumber)
         int bitIndex = blockNumber % 8;
         bm->bitmap[byteIndex] &= ~(1 << bitIndex);
         mapToDisk(bm);
+
+        VolumeControlBlock *vcb = loadVCBtoMem;
+        vcb->free_blocks++;
+        writeVCBtoDisk(vcb);
+        free(vcb);
         return 1;
     }
     else
@@ -97,11 +108,17 @@ int fsAlloc(Bitmap *bm, int req)
                     // If we found a successful sequence
                     if (consecutiveFreeBlocks == req)
                     {
-                        for(int i = startBlock; i < startBlock + req; i++)
+                        for (int i = startBlock; i < startBlock + req; i++)
                         {
                             printf("From bitmap.c->fsAlloc: setting bit: %d\n", i);
-                            setBit(bm,i); //mark the blocks as used for the space requester
+                            setBit(bm, i); // mark the blocks as used for the space requester
                         }
+
+                        VolumeControlBlock *vcb = loadVCBtoMem;
+                        vcb->free_blocks -= req;
+                        writeVCBtoDisk(vcb);
+                        free(vcb);
+
                         return startBlock;
                     }
                 }
@@ -131,39 +148,46 @@ int fsAlloc(Bitmap *bm, int req)
     return -1;
 }
 
-//Return 1 if successful, -1 if failed
-int fsRelease(Bitmap* bm, int startBlock, int count)
+// Return 1 if successful, -1 if failed
+int fsRelease(Bitmap *bm, int startBlock, int count)
 {
     /*
     Make sure params are valid
     Set the bits in the bm to being free. Anything else?
     Return
     */
-    if(bm == NULL)
+    if (bm == NULL)
     {
         fprintf(stderr, "Bitmap is null\n");
         return -1;
     }
-    if(startBlock < 0 || (startBlock + count) > bm->fsNumBlocks)
+    if (startBlock < 0 || (startBlock + count) > bm->fsNumBlocks)
     {
         fprintf(stderr, "Invalid blocks");
         return -1;
     }
-    if(count < 1){
+    if (count < 1)
+    {
         fprintf(stderr, "Invalid count");
         return -1;
     }
-    
+
     int clearRet;
 
-    for(int i = startBlock; i < startBlock + count; i++)
+    for (int i = startBlock; i < startBlock + count; i++)
     {
         clearRet = clearBit(bm, i);
-        if(clearRet == -1){
+        if (clearRet == -1)
+        {
             fprintf(stderr, "clearBit failed");
             return -1;
         }
     }
+    VolumeControlBlock *vcb = loadVCBtoMem;
+    vcb->free_blocks+= count;
+    writeVCBtoDisk(vcb);
+    free(vcb);
+    
     return 1;
 }
 
@@ -177,17 +201,17 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize)
         exit(EXIT_FAILURE);
     }
     for (uint32_t i = 0; i < sizeof(Bitmap); i++)
-	{
-		((char *)bm)[i] = 0;
-	}
+    {
+        ((char *)bm)[i] = 0;
+    }
 
     // Allocate the size for bitmap - Convert the num bytes to num bits for bitmap malloc
     int blocksToBitsInBytes = (fsNumBlocks + 7) / 8;
-    
+
     bm->fsNumBlocks = fsNumBlocks;
     printf("bitmap.c 188: bm->fsNumBlocks: %d, fsNumBlocks: %d\n", bm->fsNumBlocks, fsNumBlocks);
-    //Below operation works because of int division.
-    int roundedBytes = ((blocksToBitsInBytes + blockSize - 1)/ blockSize) * blockSize;
+    // Below operation works because of int division.
+    int roundedBytes = ((blocksToBitsInBytes + blockSize - 1) / blockSize) * blockSize;
     printf("BITMAP.C>initBitmap: roundedBytes: %d\n", roundedBytes);
     bm->bitmap = (uint8_t *)malloc(roundedBytes);
     if (bm->bitmap == NULL)
@@ -222,6 +246,20 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize)
     mapToDisk(bm);
 
     return bm;
+}
+
+Bitmap *loadBMtoMem(int blockSize)
+{
+    VolumeControlBlock *vcb = loadVCBtoMem(blockSize);
+    void *buffer = malloc(blockSize);
+    if (buffer == NULL)
+    {
+        perror("Failed to load bitmap to memory\n");
+        exit(EXIT_FAILURE);
+    }
+
+    LBAread(buffer, vcb->fsmap_num_blocks, vcb->fsmap_start_block);
+    return (Bitmap *)buffer;
 }
 
 #endif
