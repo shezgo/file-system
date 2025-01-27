@@ -104,7 +104,7 @@ int findUnusedDE(DE *parent)
     {
         if (parent[i].name[0] == '\0')
         {
-            printf("findUnusedDE index:%d", i);
+            printf("findUnusedDE index:%d\n", i);
             return i;
         }
     }
@@ -172,10 +172,14 @@ int parsePath(char *path, ppinfo *ppi)
     // Special case: If the only token is /, then it’ll return null
     if (token1 == NULL)
     {
+        if (path[0] != '/')
+        {
+            return  -1; //Invalid path
+        }
         ppi->parent = parent;
         ppi->le = NULL;
         ppi->lei = 0; // this means path is root
-        return -2;
+        return -2; //Unique return val for root path
     }
     char *token2;
 
@@ -185,15 +189,15 @@ int parsePath(char *path, ppinfo *ppi)
 
         ppi->lei = findNameInDir(parent, token1);
         printf("pp debug - ppi->lei:%d\n", ppi->lei);
-        char *saveptr2;
-        token2 = strtok_r(NULL, "/", &saveptr2);
+        token2 = strtok_r(NULL, "/", &saveptr);
         printf("pp debug - token2:%s\n", token2 ? token2 : "NULL");
-
-        // If token2 is null then token1 is the last element.
+        printf("pp debug print token1:%s, ppi->le:%s\n", token1, ppi->le);
+        // Success: If token2 is null then token1 is the last element.
         if (token2 == NULL)
         {
             ppi->parent = parent;
             printf("pp debug 4: ppi->parent->name:%s\n", ppi->parent->name);
+            printf("pp debug2 print token1:%s, ppi->le:%s\n", token1, ppi->le);
             return (0);
         }
         // If token2 is not null, that tells you token1 has to exist and must be a directory.
@@ -252,7 +256,7 @@ int fs_mkdir(const char *path, mode_t mode)
     }
     ppinfo ppi;
     int parseFlag = parsePath(pathCopy, &ppi);
-    free(pathCopy);
+    //free(pathCopy); //this statement alters ppi.le for some reason
     // If parsePath fails
     if (parseFlag != 0)
     {
@@ -268,6 +272,7 @@ int fs_mkdir(const char *path, mode_t mode)
     }
 
     DE *newDir = initDir(MIN_ENTRIES, ppi.parent, bm);
+
     if (newDir == NULL)
     {
         fprintf(stderr, "Unable to create newDir\n");
@@ -284,8 +289,10 @@ int fs_mkdir(const char *path, mode_t mode)
         return -1;
     }
 
-    memcpy(&(ppi.parent[x]), newDir, sizeof(DE));
-    strcpy(ppi.parent[x].name, ppi.le);
+    memcpy(&(ppi.parent[x]), newDir, sizeof(DE));//this is supposed to set newDir to ppi.parent[x].
+    //then ppi.le is supposed to be the name...but ppi.le might not be correct.
+    strncpy(ppi.parent[x].name, ppi.le, sizeof(ppi.parent[x].name) - 1);
+    ppi.parent[x].name[sizeof(ppi.parent[x].name) - 1] = '\0'; 
 
     saveDir(newDir);
 
@@ -313,7 +320,7 @@ fdDir *fs_opendir(const char *pathname)
     }
     ppinfo ppi;
     int parseFlag = parsePath(pathCopy, &ppi);
-    free(pathCopy);
+    //free(pathCopy);
 
     // If the directory wasn't found, return failure.
     if (ppi.lei == -1)
@@ -331,6 +338,7 @@ fdDir *fs_opendir(const char *pathname)
         return NULL;
     }
 
+    // x counts the number of DEs in thisDir
     int cntEntries = thisDir->size / sizeof(DE);
     int x = 0;
 
@@ -373,8 +381,9 @@ fdDir *fs_opendir(const char *pathname)
         fdDirIP->di->d_name[strlen(thisDir[x].name)] = '\0';
         fdDirIP->directory = &(thisDir[x]);
         fdDirIP->numEntries = cntEntries;
-        fdDirIP->dirEntryPosition = x + 1;
+        fdDirIP->dirEntryPosition = 0;
         freeIfNotNeedDir(thisDir);
+
         return fdDirIP;
     }
     else
@@ -399,7 +408,7 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
     DE *newDE = &(dirp->directory[dirp->dirEntryPosition]);
 
     int i = 0;
-    while ((newDE[dirp->dirEntryPosition]).name[0] == '\0' &&
+    while (((newDE[dirp->dirEntryPosition]).name)[0] == '\0' &&
            dirp->dirEntryPosition < dirp->numEntries)
     {
         dirp->dirEntryPosition++;
@@ -411,8 +420,8 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
         printf("No more filled entries in dirp, return\n");
         return NULL;
     }
-    strncpy(dirp->di->d_name, newDE->name, 255);
-    dirp->di->d_name[strlen(dirp->di->d_name)] = '\0';
+    printf("from fs_readdir newDE->name:%s\n", newDE->name);
+    strncpy(dirp->di->d_name, newDE->name, sizeof(newDE->name));
     dirp->di->fileType = newDE->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE;
     dirp->dirEntryPosition++;
 

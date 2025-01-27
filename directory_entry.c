@@ -5,15 +5,15 @@
  * GitHub-Name:: shezgo
  * Group-Name:: Spork
  * Project:: Basic File System
-*
-* File:: directory_entry.c
-*
-* Description:: 
-*	This is used for directory_entry operations
-*	
-*	
-*
-**************************************************************/
+ *
+ * File:: directory_entry.c
+ *
+ * Description::
+ *	This is used for directory_entry operations
+ *
+ *
+ *
+ **************************************************************/
 #include "directory_entry.h"
 #include "fsInit.h"
 
@@ -27,16 +27,16 @@ DE *initDir(int minEntries, DE *parent, Bitmap *bm)
     // Allocate memory for the directory
     DE *newDir = (DE *)malloc(bytesToAlloc);
     if (newDir == NULL)
-	{
-		fprintf(stderr, "New directory memory allocation failed\n");
-		return NULL;
-	}
+    {
+        fprintf(stderr, "New directory memory allocation failed\n");
+        return NULL;
+    }
 
-	// Initialize all bytes to 0 using a for loop
-	for (uint32_t i = 0; i < bytesToAlloc; i++)
-	{
-		((char *)newDir)[i] = 0;
-	}
+    // Initialize all bytes to 0 using a for loop
+    for (uint32_t i = 0; i < bytesToAlloc; i++)
+    {
+        ((char *)newDir)[i] = 0;
+    }
 
     // Calculate number of entries that can fit inside the directory block(s)
     int actualEntries = bytesToAlloc / sizeof(DE);
@@ -45,12 +45,21 @@ DE *initDir(int minEntries, DE *parent, Bitmap *bm)
     printf("From directory_entry.c->initDir: newLoc:%d bm->fsNumBlocks:%d, blocksNeeded:%d\n", newLoc, bm->fsNumBlocks, blocksNeeded);
     int entriesPerBlock = actualEntries / blocksNeeded;
 
-    //Init LBAlocations depending on how many entries per block there are.
-    for (int i = 0; i < entriesPerBlock; i++)
+    // DEBUG confirm that this works
+    // Init LBAlocations depending on how many entries per block there are.
+
+    for (int i = 0, k = newLoc; i < actualEntries; i += entriesPerBlock, k++)
     {
-        for (int j = 0; j < blocksNeeded; j++)
+        for (int j = 0; j < entriesPerBlock; j++)
         {
-            newDir[j * entriesPerBlock].LBAlocation = newLoc + j;
+            if ((i + j) < actualEntries)
+            {
+                newDir[i + j].LBAlocation = k;
+            }
+            else
+            {
+                break;
+            }
         }
     }
     // Initialize the entries in the directory - start with 2 because . and .. are at 0 and 1
@@ -100,7 +109,8 @@ DE *initDir(int minEntries, DE *parent, Bitmap *bm)
     return newDir;
 }
 
-// Loads a directory into memory for manipulation
+// Loads a directory into memory for manipulation. Currently loads all bytes in the shared LBA
+// in addition to the desired directory.
 DE *loadDirDE(DE *dir)
 {
     if (dir->isDirectory == 0)
@@ -117,15 +127,16 @@ DE *loadDirDE(DE *dir)
         fprintf(stderr, "Cannot load NULL dir\n");
         return NULL;
     }
-    //New code starts here
-    void *buffer = malloc(dir->dirNumBlocks *vcb->block_size);
+    // New code starts here
+    void *buffer = malloc(dir->dirNumBlocks * vcb->block_size);
 
-    if (buffer == NULL) {
+    if (buffer == NULL)
+    {
         perror("Failed to allocate for buffer in loadDir\n");
         exit(EXIT_FAILURE);
     }
 
-    int readReturn = LBAread(buffer, dir->dirNumBlocks,dir->LBAlocation);
+    int readReturn = LBAread(buffer, dir->dirNumBlocks, dir->LBAlocation);
 
     if (readReturn != dir->dirNumBlocks)
     {
@@ -133,17 +144,18 @@ DE *loadDirDE(DE *dir)
         free(buffer);
         exit(EXIT_FAILURE);
     }
-    
-    return (DE *) buffer;
+
+    return (DE *)buffer;
 }
 
 DE *loadDirLBA(int numBlocks, int startBlock)
 {
 
-    //New code starts here
+    // New code starts here
     void *buffer = malloc(numBlocks * vcb->block_size);
 
-    if (buffer == NULL) {
+    if (buffer == NULL)
+    {
         perror("Failed to allocate for buffer in loadDir\n");
         exit(EXIT_FAILURE);
     }
@@ -156,6 +168,6 @@ DE *loadDirLBA(int numBlocks, int startBlock)
         free(buffer);
         exit(EXIT_FAILURE);
     }
-    
-    return (DE *) buffer;
+
+    return (DE *)buffer;
 }

@@ -56,7 +56,9 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		}
 		
 		cwdGlobal = rootGlobal; 
-		
+		//Output statement to check if cwdGlobal is initializing to rootGlobal
+		printf("fsInit.c line 60: cwdGlobal->name: %s\n", cwdGlobal->name);
+		printf("rootGlobal->name: %s\n", rootGlobal->name);
 		// Initialize a global current working directory name string
 		cwdName = (char *)malloc(CWD_SIZE);
 		if (cwdName == NULL)
@@ -70,7 +72,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		}
 		strcpy(cwdName, "/");
 		// end init cwdName
-
+		printf("fsInit.c line 75: cwdName: %s\n", cwdName);
 		return 0;
 	}
 	// ********************************************************************************************
@@ -80,7 +82,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	printf("Mounting file system\n");
 
 	// If the volume hasn't been initialized
-	//  Clear all memory for vcb before initializing and writing
+	// Clear all memory for vcb before initializing and writing
 	for (uint32_t i = 0; i < blockSize; i++)
 	{
 		((char *)vcb)[i] = 0;

@@ -83,7 +83,7 @@ int isBitUsed(Bitmap *bm, int blockNumber)
     }
 }
 
-// Depending on requested number of blocks from user, send a starting block to be used.
+// Depending on requested number of blocks from user, return a starting block index to be used.
 int fsAlloc(Bitmap *bm, int req)
 {
     // Check if req is a valid value
@@ -156,7 +156,7 @@ int fsAlloc(Bitmap *bm, int req)
     return -1;
 }
 
-// Return 1 if successful, -1 if failed
+// Set the corresponding bits in the bitmap to being free. Return 1 if successful, -1 if failed
 int fsRelease(Bitmap *bm, int startBlock, int count)
 {
     /*
