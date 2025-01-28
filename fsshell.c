@@ -103,6 +103,7 @@ int displayFiles (fdDir * dirp, int flall, int fllong)
 	struct fs_diriteminfo * di;
 	struct fs_stat statbuf;
 	di = fs_readdir (dirp);
+	printf("from displayFiles di->d_name:%s\n", di->d_name);
 	printf("\n");
 
 	while (di != NULL) 
@@ -122,7 +123,9 @@ int displayFiles (fdDir * dirp, int flall, int fllong)
 			}
 		di = fs_readdir (dirp);
 		}
+		printf("is this where seg fault happens?\n");
 	fs_closedir (dirp);
+			printf("is this where seg fault happens2?\n");
 #endif
 	return 0;
 	}
@@ -208,6 +211,7 @@ int cmd_ls (int argcnt, char *argvec[])
 				{
 				fdDir * dirp;
 				dirp = fs_opendir (argvec[k]);
+				printf("first clause in ls\n");
 				displayFiles (dirp, flall, fllong);
 				}
 			else // it is just a file ?
@@ -230,7 +234,7 @@ int cmd_ls (int argcnt, char *argvec[])
 
 		fdDir * dirp;
 		dirp = fs_opendir (path);
-
+		printf("second clause in ls\n");
 		return (displayFiles (dirp, flall, fllong));
 		}
 #endif

@@ -37,7 +37,7 @@ int findNameInDir(DE *parent, char *name)
     int numEntries = parent->size / sizeof(DE);
     for (int i = 0; i < numEntries; i++)
     {
-        printf("parent[%d].name:%s\n", i, parent[i].name);
+        printf("findNameInDir: parent[%d].name:%s\n", i, parent[i].name);
         if (strcmp(parent[i].name, name) == 0)
         {
             return i;
@@ -228,6 +228,7 @@ int parsePath(char *path, ppinfo *ppi)
         freeIfNotNeedDir(parent); // not null, not cwd, not root
         parent = temp;
         token1 = token2;
+        printf("parsepath round complete\n");
 
     } while (token2 != NULL);
     // if the index is invalid, exit 
@@ -271,7 +272,8 @@ int fs_mkdir(const char *path, mode_t mode)
         return (2);
     }
 
-    DE *newDir = initDir(MIN_ENTRIES, ppi.parent, bm);
+    //DEBUG this just had ppi.parent as second parameter before
+    DE *newDir = initDir(MIN_ENTRIES, &(ppi.parent[ppi.lei]), bm);
 
     if (newDir == NULL)
     {
@@ -288,17 +290,18 @@ int fs_mkdir(const char *path, mode_t mode)
         fprintf(stderr, "No unused DE in parent");
         return -1;
     }
-
+    printf("ppi.parent time creation:%ld\n", ppi.parent->timeCreation);
     memcpy(&(ppi.parent[x]), newDir, sizeof(DE));//this is supposed to set newDir to ppi.parent[x].
     //then ppi.le is supposed to be the name...but ppi.le might not be correct.
+    printf("from fs_mkdir ppi.le:%s", ppi.le);
     strncpy(ppi.parent[x].name, ppi.le, sizeof(ppi.parent[x].name) - 1);
     ppi.parent[x].name[sizeof(ppi.parent[x].name) - 1] = '\0'; 
+    printf("from fs_mkdir ppi.parent[x].name:%s", ppi.parent[x].name);
 
     saveDir(newDir);
 
-    free(newDir);
+    freeIfNotNeedDir(newDir);
 
-    freeIfNotNeedDir(ppi.parent);
     return 0;
 }
 
@@ -337,10 +340,10 @@ fdDir *fs_opendir(const char *pathname)
         fprintf(stderr, "File is not a directory\n");
         return NULL;
     }
-
+    
     // x counts the number of DEs in thisDir
     int cntEntries = thisDir->size / sizeof(DE);
-    int x = 0;
+    /*int x = 0;
 
     while ((thisDir[x].name[0] == '\0') && x < cntEntries)
     {
@@ -348,6 +351,7 @@ fdDir *fs_opendir(const char *pathname)
     }
     if (x < cntEntries)
     {
+        */
         fdDir *fdDirIP = malloc(sizeof(fdDir));
 
         if (fdDirIP == NULL)
@@ -376,20 +380,20 @@ fdDir *fs_opendir(const char *pathname)
         }
 
         fdDirIP->di->d_reclen = sizeof(struct fs_diriteminfo);
-        fdDirIP->di->fileType = thisDir[x].isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE; 
-        strncpy(fdDirIP->di->d_name, thisDir[x].name, 255);
-        fdDirIP->di->d_name[strlen(thisDir[x].name)] = '\0';
-        fdDirIP->directory = &(thisDir[x]);
+        fdDirIP->di->fileType = thisDir->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE; 
+        strncpy(fdDirIP->di->d_name, thisDir->name, 255);
+        fdDirIP->di->d_name[strlen(thisDir->name)] = '\0';
+        fdDirIP->directory = thisDir;
         fdDirIP->numEntries = cntEntries;
         fdDirIP->dirEntryPosition = 0;
-        freeIfNotNeedDir(thisDir);
 
         return fdDirIP;
-    }
+    /*}
     else
     {
         return NULL;
     }
+    */
 }
 //*************************************************************************************************
 struct fs_diriteminfo *fs_readdir(fdDir *dirp)
@@ -422,6 +426,7 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
     }
     printf("from fs_readdir newDE->name:%s\n", newDE->name);
     strncpy(dirp->di->d_name, newDE->name, sizeof(newDE->name));
+    printf("from fs_readdir dirp->di->d_name:%s\n", dirp->di->d_name);
     dirp->di->fileType = newDE->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE;
     dirp->dirEntryPosition++;
 

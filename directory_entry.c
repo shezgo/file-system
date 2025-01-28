@@ -82,6 +82,7 @@ DE *initDir(int minEntries, DE *parent, Bitmap *bm)
     // Initialize . entry in the directory
     printf("From directory_entry.h->initDir: newLoc:%d blocksNeeded:%d\n", newLoc, blocksNeeded);
     time_t tc = time(NULL);
+    printf("directory_entry tc test:%ld\n", tc);
     newDir[0].size = actualEntries * sizeof(DE);
     strcpy(newDir[0].name, ".");
     newDir[0].isDirectory = 1;
