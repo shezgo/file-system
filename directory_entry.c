@@ -43,8 +43,24 @@ DE *initDir(int minEntries, DE *parent, Bitmap *bm)
     printf("From directory_entry.c->initDir:BEFORE fsAlloc:bm->fsNumBlocks:%d, blocksNeeded:%d\n", bm->fsNumBlocks, blocksNeeded);
     int newLoc = fsAlloc(bm, blocksNeeded);
     printf("From directory_entry.c->initDir: newLoc:%d bm->fsNumBlocks:%d, blocksNeeded:%d\n", newLoc, bm->fsNumBlocks, blocksNeeded);
-    int entriesPerBlock = actualEntries / blocksNeeded;
+    int entriesPerBlock = actualEntries / blocksNeeded; // Old code
 
+    // Assign LBA locations to each directory entry
+    for (int i = 0; i < actualEntries; i++)
+    {
+        int blockOffset = i / (BLOCKSIZE / sizeof(DE)); // Determine the block this entry belongs to
+        newDir[i].LBAlocation = newLoc + blockOffset;
+        newDir[i].LBAindex = (i % entriesPerBlock) * sizeof(DE);
+        newDir[i].size = -1;
+        newDir[i].name[0] = '\0';
+        newDir[i].timeCreation = (time_t)(-1);
+        newDir[i].lastAccessed = (time_t)(-1);
+        newDir[i].lastModified = (time_t)(-1);
+        newDir[i].isDirectory = -1;
+        newDir[i].dirNumBlocks = -1;
+    }
+
+/*  Old Code
     // DEBUG confirm that this works
     // Init LBAlocations depending on how many entries per block there are.
 
@@ -62,6 +78,9 @@ DE *initDir(int minEntries, DE *parent, Bitmap *bm)
             }
         }
     }
+    */
+
+   /* More old code
     // Initialize the entries in the directory - start with 2 because . and .. are at 0 and 1
     for (int i = 2; i < actualEntries; i++)
     {
@@ -171,4 +190,54 @@ DE *loadDirLBA(int numBlocks, int startBlock)
     }
 
     return (DE *)buffer;
+}
+int updateDELBA(DE * dir)
+{
+    /*
+        After being passed a DE, use it to update the LBA it belongs to and save to disk.
+        Use the DE's LBAlocation and LBAindex to know where to begin adjusting the data.
+
+        Load the directory's entire LBA to a buffer in memory.
+        Copy the new contents of dir int at buffer[LBAindex] - this should be sizeof(DE) bytes.
+        LBAwrite this new buffer to dir's LBAlocation.
+    */
+
+    if (dir->isDirectory == 0)
+    {
+        fprintf(stderr, "loadDir: DE is not a directory.\n");
+        return NULL;
+    }
+    if (dir == NULL)
+    {
+        fprintf(stderr, "Cannot load NULL dir\n");
+        return NULL;
+    }
+
+    void *buffer = malloc(vcb->block_size);
+
+    if (buffer == NULL)
+    {
+        perror("Failed to allocate for buffer in loadDir\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int readReturn = LBAread(buffer, 1, dir->LBAlocation);
+
+    if (readReturn < 0)
+    {
+        perror("Failed to updateDELBA \n");
+        free(buffer);
+        exit(EXIT_FAILURE);
+    }
+
+    memcpy(buffer, (char *) dir, sizeof(DE));
+    int writeReturn = LBAwrite(buffer, 1, dir->LBAlocation);
+    if (writeReturn != 1)
+    {
+        perror("Failed to updateDELBA \n");
+        exit(EXIT_FAILURE);
+    }
+    return writeReturn;
+
+
 }

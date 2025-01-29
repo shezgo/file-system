@@ -32,7 +32,7 @@
 #include "volume_control_block.h"
 #include "bitmap.h"
 
-#define MIN_ENTRIES 15
+#define MIN_ENTRIES 12
 #define CWD_SIZE 256
 #define MAX_DIR_NAME 100
 

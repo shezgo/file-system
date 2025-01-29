@@ -298,7 +298,9 @@ int fs_mkdir(const char *path, mode_t mode)
     ppi.parent[x].name[sizeof(ppi.parent[x].name) - 1] = '\0'; 
     printf("from fs_mkdir ppi.parent[x].name:%s", ppi.parent[x].name);
 
-    saveDir(newDir);
+    updateDELBA(newDir);
+    //PICKUP HERE - You last updated saveDir(newDir) to be updateDELBA instead. Having a hard time
+    //conceptualizing how to know which directories belong to which from pure disk memory.
 
     freeIfNotNeedDir(newDir);
 
