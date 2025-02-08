@@ -35,6 +35,7 @@
 #define MIN_ENTRIES 12
 #define CWD_SIZE 256
 #define MAX_DIR_NAME 100
+#define ROOTNUMBLOCKS 5
 
 extern Bitmap *bm;      //Global declaration of the freespace bitmap
 extern DE *rootGlobal; // Global declaration of the root directory

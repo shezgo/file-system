@@ -216,7 +216,7 @@ int parsePath(char *path, ppinfo *ppi)
             return -1;
         }
         // Now we know token 1 does exist, is valid, and is a directory. So we want to load it/get
-        // that dir
+        // that dirparsePath
         if (ppi->lei >= (parent->size / sizeof(DE)))
         {
             fprintf(stderr, "ppi->lei is out of bounds");
@@ -298,7 +298,13 @@ int fs_mkdir(const char *path, mode_t mode)
     ppi.parent[x].name[sizeof(ppi.parent[x].name) - 1] = '\0'; 
     printf("from fs_mkdir ppi.parent[x].name:%s", ppi.parent[x].name);
 
-    updateDELBA(newDir);
+    int uDRet = updateDELBA(newDir);
+
+    if (x == 1)
+    {
+        printf("updateDELBA failed from fs_mkdir\n");
+        return -1;
+    }
     //PICKUP HERE - You last updated saveDir(newDir) to be updateDELBA instead. Having a hard time
     //conceptualizing how to know which directories belong to which from pure disk memory.
 
@@ -308,7 +314,7 @@ int fs_mkdir(const char *path, mode_t mode)
 }
 
 //*************************************************************************************************
-// Open a directory. Returns NULL if fails.
+// Open a directory. Returns NULL if fails. This should also load a directory into memory.
 fdDir *fs_opendir(const char *pathname)
 {
     if (pathname == NULL)
@@ -334,7 +340,7 @@ fdDir *fs_opendir(const char *pathname)
         return NULL;
     }
 
-
+    //Can this just be DE *thisDir = &(ppi.parent[ppi.lei]));?
     DE *thisDir = loadDirDE(&(ppi.parent[ppi.lei]));
 
     if (thisDir == NULL)
@@ -413,22 +419,21 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
 
     DE *newDE = &(dirp->directory[dirp->dirEntryPosition]);
 
-    int i = 0;
+    //Skip past any null DEs in the directory
     while (((newDE[dirp->dirEntryPosition]).name)[0] == '\0' &&
            dirp->dirEntryPosition < dirp->numEntries)
     {
         dirp->dirEntryPosition++;
-        i++;
     }
 
     if (dirp->dirEntryPosition >= dirp->numEntries)
     {
-        printf("No more filled entries in dirp, return\n");
+        printf("fs_readdir: No more filled entries in dirp, return\n");
         return NULL;
     }
-    printf("from fs_readdir newDE->name:%s\n", newDE->name);
+    //printf("from fs_readdir newDE->name:%s\n", newDE->name);
     strncpy(dirp->di->d_name, newDE->name, sizeof(newDE->name));
-    printf("from fs_readdir dirp->di->d_name:%s\n", dirp->di->d_name);
+    //printf("from fs_readdir dirp->di->d_name:%s\n", dirp->di->d_name);
     dirp->di->fileType = newDE->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE;
     dirp->dirEntryPosition++;
 

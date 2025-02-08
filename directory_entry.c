@@ -191,6 +191,8 @@ DE *loadDirLBA(int numBlocks, int startBlock)
 
     return (DE *)buffer;
 }
+
+//Returns 0 for success, 1 for failure
 int updateDELBA(DE * dir)
 {
     /*
@@ -205,12 +207,12 @@ int updateDELBA(DE * dir)
     if (dir->isDirectory == 0)
     {
         fprintf(stderr, "loadDir: DE is not a directory.\n");
-        return NULL;
+        return 1;
     }
     if (dir == NULL)
     {
         fprintf(stderr, "Cannot load NULL dir\n");
-        return NULL;
+        return 1;
     }
 
     void *buffer = malloc(vcb->block_size);

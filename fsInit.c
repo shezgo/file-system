@@ -110,16 +110,22 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	vcb->free_blocks = vcb->total_blocks - vcb->fsmap_num_blocks - 2; // subtract blocks for bitmap, vcb, root
 	vcb->signature = 0x1A;								  // This is an arbitrary number to check if already initialized
 	vcb->fsmap_start_block = 1;
-	vcb->fsmap_end_block = bm->mapNumBlocks + 1;
+	vcb->fsmap_end_block = bm->mapNumBlocks;
 	vcb->fsmap_num_blocks = bm->mapNumBlocks;
+	vcb->root_directory_block = vcb->fsmap_end_block + 1;
+	vcb->root_num_blocks = ROOTNUMBLOCKS;
 
 	// Initialize and write root directory to disk. VCB root_start_block gets initialized
 	// in the initDir function, so writing vcb to disk must happen after.
-	rootGlobal = initDir(MIN_ENTRIES, NULL, bm);
+	rootGlobal = initDir((MINBLOCKSIZE * 5) / sizeof(DE), NULL, bm);
 	//Current working directory always starts at root when starting file system.
 	cwdGlobal = rootGlobal; 
 	strcpy(cwdName, "/");
 	int vcbWriteReturn = LBAwrite(vcb, 1, 0);
+
+	printf("sizeof(DE):%ld\n", sizeof(DE));
+
+
 
 	return 0;
 }

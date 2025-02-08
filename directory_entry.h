@@ -35,6 +35,7 @@ typedef struct DE
 {
     long size;           // size of the file in bytes, or actualEntries * sizeof(DE) if directory
     long LBAlocation;    // location where the directory entry is stored
+    long LBAindex;       // index within LBAlocation
     char name[NAME + 1]; // Name of the directory entry
     time_t timeCreation; // the time the DE was created
     time_t lastAccessed; // the time the DE was last accessed
