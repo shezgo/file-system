@@ -145,6 +145,7 @@ int parsePath(char *path, ppinfo *ppi)
         return 1;
     }
     DE *start;
+
     if (path[0] == '/')
     {
         if (rootGlobal != NULL)
@@ -216,7 +217,7 @@ int parsePath(char *path, ppinfo *ppi)
             return -1;
         }
         // Now we know token 1 does exist, is valid, and is a directory. So we want to load it/get
-        // that dirparsePath
+        // that dir parsePath
         if (ppi->lei >= (parent->size / sizeof(DE)))
         {
             fprintf(stderr, "ppi->lei is out of bounds");
@@ -273,7 +274,7 @@ int fs_mkdir(const char *path, mode_t mode)
     }
 
     //DEBUG this just had ppi.parent as second parameter before
-    DE *newDir = initDir(MIN_ENTRIES, &(ppi.parent[ppi.lei]), bm);
+    DE *newDir = initDir(MAX_ENTRIES, &(ppi.parent[ppi.lei]), bm);
 
     if (newDir == NULL)
     {
@@ -386,7 +387,7 @@ fdDir *fs_opendir(const char *pathname)
         {
             ((char *)fdDirIP->di)[i] = 0;
         }
-
+    //DEBUG open doesn't actually return a name yet
         fdDirIP->di->d_reclen = sizeof(struct fs_diriteminfo);
         fdDirIP->di->fileType = thisDir->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE; 
         strncpy(fdDirIP->di->d_name, thisDir->name, 255);
@@ -417,10 +418,10 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
         return NULL;
     }
 
-    DE *newDE = &(dirp->directory[dirp->dirEntryPosition]);
+
 
     //Skip past any null DEs in the directory
-    while (((newDE[dirp->dirEntryPosition]).name)[0] == '\0' &&
+    while ((dirp->directory[dirp->dirEntryPosition]).name[0] == '\0' &&
            dirp->dirEntryPosition < dirp->numEntries)
     {
         dirp->dirEntryPosition++;
@@ -431,6 +432,8 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
         printf("fs_readdir: No more filled entries in dirp, return\n");
         return NULL;
     }
+
+    DE *newDE = &(dirp->directory[dirp->dirEntryPosition]);
     //printf("from fs_readdir newDE->name:%s\n", newDE->name);
     strncpy(dirp->di->d_name, newDE->name, sizeof(newDE->name));
     //printf("from fs_readdir dirp->di->d_name:%s\n", dirp->di->d_name);

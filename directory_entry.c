@@ -131,23 +131,28 @@ DE *initDir(int minEntries, DE *parent, Bitmap *bm)
 
 // Loads a directory into memory for manipulation. Currently loads all bytes in the shared LBA
 // in addition to the desired directory.
+// DEBUG: ensure root case is being handled
 DE *loadDirDE(DE *dir)
 {
+    if (dir == NULL)
+        {
+        fprintf(stderr, "Cannot load NULL dir\n");
+        return NULL;
+    }
     if (dir->isDirectory == 0)
     {
         fprintf(stderr, "loadDir: DE is not a directory.\n");
         return NULL;
     }
+    //DEBUG no name for root
     if (strcmp(dir->name, rootGlobal->name) == 0)
     {
         return rootGlobal;
     }
-    if (dir == NULL)
-    {
-        fprintf(stderr, "Cannot load NULL dir\n");
-        return NULL;
-    }
+
+
     // New code starts here
+    //DEBUG storing dirNumBlocks is redundant
     void *buffer = malloc(dir->dirNumBlocks * vcb->block_size);
 
     if (buffer == NULL)
@@ -155,7 +160,7 @@ DE *loadDirDE(DE *dir)
         perror("Failed to allocate for buffer in loadDir\n");
         exit(EXIT_FAILURE);
     }
-
+//this is correct
     int readReturn = LBAread(buffer, dir->dirNumBlocks, dir->LBAlocation);
 
     if (readReturn != dir->dirNumBlocks)

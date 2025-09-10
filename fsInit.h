@@ -32,7 +32,7 @@
 #include "volume_control_block.h"
 #include "bitmap.h"
 
-#define MIN_ENTRIES 12
+#define MAX_ENTRIES 25 //5 DEs per block, 5 blocks per directory MAX
 #define CWD_SIZE 256
 #define MAX_DIR_NAME 100
 #define ROOTNUMBLOCKS 5
