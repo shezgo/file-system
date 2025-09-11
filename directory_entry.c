@@ -17,10 +17,10 @@
 #include "directory_entry.h"
 #include "fsInit.h"
 
-DE *initDir(int minEntries, DE *parent, Bitmap *bm)
+DE *initDir(int maxEntries, DE *parent, Bitmap *bm)
 {
     int BLOCKSIZE = vcb->block_size;
-    int bytesNeeded = minEntries * sizeof(DE);
+    int bytesNeeded = maxEntries * sizeof(DE);
     int blocksNeeded = (bytesNeeded + BLOCKSIZE - 1) / BLOCKSIZE;
     int bytesToAlloc = blocksNeeded * BLOCKSIZE;
 
