@@ -60,43 +60,43 @@ DE *initDir(int maxEntries, DE *parent, Bitmap *bm)
         newDir[i].dirNumBlocks = -1;
     }
 
-/*  Old Code
-    // DEBUG confirm that this works
-    // Init LBAlocations depending on how many entries per block there are.
+    /*  Old Code
+        // DEBUG confirm that this works
+        // Init LBAlocations depending on how many entries per block there are.
 
-    for (int i = 0, k = newLoc; i < actualEntries; i += entriesPerBlock, k++)
-    {
-        for (int j = 0; j < entriesPerBlock; j++)
+        for (int i = 0, k = newLoc; i < actualEntries; i += entriesPerBlock, k++)
         {
-            if ((i + j) < actualEntries)
+            for (int j = 0; j < entriesPerBlock; j++)
             {
-                newDir[i + j].LBAlocation = k;
-            }
-            else
-            {
-                break;
+                if ((i + j) < actualEntries)
+                {
+                    newDir[i + j].LBAlocation = k;
+                }
+                else
+                {
+                    break;
+                }
             }
         }
-    }
-    */
+        */
 
-   /* More old code
-    // Initialize the entries in the directory - start with 2 because . and .. are at 0 and 1
-    for (int i = 2; i < actualEntries; i++)
-    {
-        newDir[i].size = -1;
-        newDir[i].name[0] = '\0';
-        newDir[i].timeCreation = (time_t)(-1);
-        newDir[i].lastAccessed = (time_t)(-1);
-        newDir[i].lastModified = (time_t)(-1);
-        newDir[i].isDirectory = -1;
-        newDir[i].dirNumBlocks = -1;
-    }
-    /*
-        for the first entriesPerBlock, assign newLoc + 0to LBAlocation
-        for entriesPerBlock to 2* entriesPerBlock, assign newLoc + 1 to LBA location
-        for 2*entriesPerBlock to 3*entriesPerBlock, assign newLoc + 2 to LBA location
-    */
+    /* More old code
+     // Initialize the entries in the directory - start with 2 because . and .. are at 0 and 1
+     for (int i = 2; i < actualEntries; i++)
+     {
+         newDir[i].size = -1;
+         newDir[i].name[0] = '\0';
+         newDir[i].timeCreation = (time_t)(-1);
+         newDir[i].lastAccessed = (time_t)(-1);
+         newDir[i].lastModified = (time_t)(-1);
+         newDir[i].isDirectory = -1;
+         newDir[i].dirNumBlocks = -1;
+     }
+     /*
+         for the first entriesPerBlock, assign newLoc + 0to LBAlocation
+         for entriesPerBlock to 2* entriesPerBlock, assign newLoc + 1 to LBA location
+         for 2*entriesPerBlock to 3*entriesPerBlock, assign newLoc + 2 to LBA location
+     */
 
     // Initialize . entry in the directory
     printf("From directory_entry.h->initDir: newLoc:%d blocksNeeded:%d\n", newLoc, blocksNeeded);
@@ -135,7 +135,7 @@ DE *initDir(int maxEntries, DE *parent, Bitmap *bm)
 DE *loadDirDE(DE *dir)
 {
     if (dir == NULL)
-        {
+    {
         fprintf(stderr, "Cannot load NULL dir\n");
         return NULL;
     }
@@ -144,15 +144,14 @@ DE *loadDirDE(DE *dir)
         fprintf(stderr, "loadDir: DE is not a directory.\n");
         return NULL;
     }
-    //DEBUG no name for root
+    // DEBUG no name for root
     if (strcmp(dir->name, rootGlobal->name) == 0)
     {
         return rootGlobal;
     }
 
-
     // New code starts here
-    //DEBUG storing dirNumBlocks is redundant
+    // DEBUG storing dirNumBlocks is redundant
     void *buffer = malloc(dir->dirNumBlocks * vcb->block_size);
 
     if (buffer == NULL)
@@ -160,7 +159,7 @@ DE *loadDirDE(DE *dir)
         perror("Failed to allocate for buffer in loadDir\n");
         exit(EXIT_FAILURE);
     }
-//this is correct
+    // this is correct
     int readReturn = LBAread(buffer, dir->dirNumBlocks, dir->LBAlocation);
 
     if (readReturn != dir->dirNumBlocks)
@@ -197,39 +196,28 @@ DE *loadDirLBA(int numBlocks, int startBlock)
     return (DE *)buffer;
 }
 
-//Returns 0 for success, 1 for failure
-int updateDELBA(DE * dir)
+// Update a directory on disk. Returns 1 on success, -1 if failed.
+// This should ONLY update a DE on disk from an entire loaded directory in memory
+// PICKUP/DEBUG: Can I ensure this^ with reading into a buffer and freeing within this method?
+//
+
+int updateDELBA(DE *dir)
 {
     /*
-        After being passed a DE, use it to update the LBA it belongs to and save to disk.
-        Use the DE's LBAlocation and LBAindex to know where to begin adjusting the data.
+        To update a directory, rewrite it to its LBAlocation.
+        Update lastAccessed and lastModified in directory[0]
+        AND in its parent directory at correct index.
 
-        Load the directory's entire LBA to a buffer in memory.
-        Copy the new contents of dir int at buffer[LBAindex] - this should be sizeof(DE) bytes.
-        LBAwrite this new buffer to dir's LBAlocation.
     */
 
-    if (dir->isDirectory == 0)
-    {
-        fprintf(stderr, "loadDir: DE is not a directory.\n");
-        return 1;
-    }
-    if (dir == NULL)
-    {
-        fprintf(stderr, "Cannot load NULL dir\n");
-        return 1;
-    }
-
-    void *buffer = malloc(vcb->block_size);
-
+    void *buffer = malloc(vcb->block_size * DIRECTORY_NUM_BLOCKS);
     if (buffer == NULL)
     {
-        perror("Failed to allocate for buffer in loadDir\n");
+        perror("Failed to allocate for buffer in updateDELBA\n");
         exit(EXIT_FAILURE);
     }
 
-    int readReturn = LBAread(buffer, 1, dir->LBAlocation);
-
+    int readReturn = LBAread(buffer, DIRECTORY_NUM_BLOCKS, dir->LBAlocation);
     if (readReturn < 0)
     {
         perror("Failed to updateDELBA \n");
@@ -237,14 +225,55 @@ int updateDELBA(DE * dir)
         exit(EXIT_FAILURE);
     }
 
-    memcpy(buffer, (char *) dir, sizeof(DE));
-    int writeReturn = LBAwrite(buffer, 1, dir->LBAlocation);
-    if (writeReturn != 1)
+    DE *completeDir = (DE *)buffer;
+    if (completeDir == NULL)
+    {
+        fprintf(stderr, "Directory is null\n");
+        return -1;
+    }
+    if (completeDir[0].isDirectory == 0)
+    {
+        fprintf(stderr, "updateDELBA: DE is not a directory.\n");
+        return 1;
+    }
+
+    time_t tc = time(NULL);
+    completeDir[0].lastAccessed = tc;
+    completeDir[0].lastModified = tc;
+
+    int ret = LBAwrite(completeDir, completeDir[0].dirNumBlocks, completeDir[0].LBAlocation);
+    if (ret != 1)
     {
         perror("Failed to updateDELBA \n");
+        free(completeDir);
         exit(EXIT_FAILURE);
     }
-    return writeReturn;
 
+    // need to allocate memory for the parent directory first though
+    DE *parent = (DE *)malloc(vcb->block_size * DIRECTORY_NUM_BLOCKS);
+    if (parent == NULL)
+    {
+        perror("Failed to allocate for parent buffer in updateDELBA\n");
+        exit(EXIT_FAILURE);
+    }
 
+    parent = loadDirDE(&(completeDir[1]));
+    int parentIndex = findNameInDir(parent, completeDir[0].name);
+    // Now, edit the metadata inside the parent
+    // and rewrite the parent directory to disk
+
+    parent[parentIndex].lastAccessed = tc;
+    parent[parentIndex].lastModified = tc;
+    ret = LBAwrite(parent, parent[0].dirNumBlocks, parent[0].LBAlocation);
+    if (ret != 1)
+    {
+        perror("Failed to updateDELBA \n");
+        free(parent);
+        free(completeDir);
+        exit(EXIT_FAILURE);
+    }
+
+    free(parent);
+    free(completeDir);
+    return ret;
 }

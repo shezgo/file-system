@@ -110,7 +110,7 @@ int freeIfNotNeedDir(DE *dir); //Frees a dir only if not cwd, root, or null
 int findUnusedDE(DE *parent); //Find the first unused DE in a parent
 int saveDir(DE *directory); // Writes an existing directory to disk
 int isNullTerminated (char *str, size_t len);//1 if success, 0 if fail
-int updateDELBA(DE *directory); // Updates a DE on disk
+
 
 // This is the strucutre that is filled in from a call to fs_stat
 struct fs_stat

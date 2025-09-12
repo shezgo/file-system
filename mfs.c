@@ -5,15 +5,15 @@
  * GitHub-Name:: shezgo
  * Group-Name:: Spork
  * Project:: Basic File System
-*
-* File:: mfs.c
-*
-* Description:: 
-*	This is the file system interface.
-*	This is the interface needed by the driver to interact with
-*	your filesystem.
-*
-**************************************************************/
+ *
+ * File:: mfs.c
+ *
+ * Description::
+ *	This is the file system interface.
+ *	This is the interface needed by the driver to interact with
+ *	your filesystem.
+ *
+ **************************************************************/
 #include "mfs.h"
 #include "fsInit.h"
 #include "fsLow.h"
@@ -162,7 +162,7 @@ int parsePath(char *path, ppinfo *ppi)
     {
         if (cwdGlobal != NULL)
         {
-            start = cwdGlobal; 
+            start = cwdGlobal;
         }
     }
 
@@ -175,12 +175,12 @@ int parsePath(char *path, ppinfo *ppi)
     {
         if (path[0] != '/')
         {
-            return  -1; //Invalid path
+            return -1; // Invalid path
         }
         ppi->parent = parent;
         ppi->le = NULL;
         ppi->lei = 0; // this means path is root
-        return -2; //Unique return val for root path
+        return -2;    // Unique return val for root path
     }
     char *token2;
 
@@ -232,10 +232,12 @@ int parsePath(char *path, ppinfo *ppi)
         printf("parsepath round complete\n");
 
     } while (token2 != NULL);
-    // if the index is invalid, exit 
+    // if the index is invalid, exit
     // If the index was valid but not a directory, exit.
     // If it was, then valid!
 }
+
+
 //*************************************************************************************************
 // End helper functions
 //*************************************************************************************************
@@ -258,8 +260,8 @@ int fs_mkdir(const char *path, mode_t mode)
     }
     ppinfo ppi;
     int parseFlag = parsePath(pathCopy, &ppi);
-    //free(pathCopy); //this statement alters ppi.le for some reason
-    // If parsePath fails
+    // free(pathCopy); //this statement alters ppi.le for some reason
+    //  If parsePath fails
     if (parseFlag != 0)
     {
         fprintf(stderr, "parsePath failed\n");
@@ -273,7 +275,7 @@ int fs_mkdir(const char *path, mode_t mode)
         return (2);
     }
 
-    //DEBUG this just had ppi.parent as second parameter before
+    // DEBUG this just had ppi.parent as second parameter before
     DE *newDir = initDir(MAX_ENTRIES, &(ppi.parent[ppi.lei]), bm);
 
     if (newDir == NULL)
@@ -292,11 +294,11 @@ int fs_mkdir(const char *path, mode_t mode)
         return -1;
     }
     printf("ppi.parent time creation:%ld\n", ppi.parent->timeCreation);
-    memcpy(&(ppi.parent[x]), newDir, sizeof(DE));//this is supposed to set newDir to ppi.parent[x].
-    //then ppi.le is supposed to be the name...but ppi.le might not be correct.
+    memcpy(&(ppi.parent[x]), newDir, sizeof(DE)); // this is supposed to set newDir to ppi.parent[x].
+    // then ppi.le is supposed to be the name...but ppi.le might not be correct.
     printf("from fs_mkdir ppi.le:%s", ppi.le);
     strncpy(ppi.parent[x].name, ppi.le, sizeof(ppi.parent[x].name) - 1);
-    ppi.parent[x].name[sizeof(ppi.parent[x].name) - 1] = '\0'; 
+    ppi.parent[x].name[sizeof(ppi.parent[x].name) - 1] = '\0';
     printf("from fs_mkdir ppi.parent[x].name:%s", ppi.parent[x].name);
 
     int uDRet = updateDELBA(newDir);
@@ -306,8 +308,8 @@ int fs_mkdir(const char *path, mode_t mode)
         printf("updateDELBA failed from fs_mkdir\n");
         return -1;
     }
-    //PICKUP HERE - You last updated saveDir(newDir) to be updateDELBA instead. Having a hard time
-    //conceptualizing how to know which directories belong to which from pure disk memory.
+    // PICKUP HERE - You last updated saveDir(newDir) to be updateDELBA instead. Having a hard time
+    // conceptualizing how to know which directories belong to which from pure disk memory.
 
     freeIfNotNeedDir(newDir);
 
@@ -332,7 +334,7 @@ fdDir *fs_opendir(const char *pathname)
     }
     ppinfo ppi;
     int parseFlag = parsePath(pathCopy, &ppi);
-    //free(pathCopy);
+    // free(pathCopy);
 
     // If the directory wasn't found, return failure.
     if (ppi.lei == -1)
@@ -341,7 +343,7 @@ fdDir *fs_opendir(const char *pathname)
         return NULL;
     }
 
-    //Can this just be DE *thisDir = &(ppi.parent[ppi.lei]));?
+    // Can this just be DE *thisDir = &(ppi.parent[ppi.lei]));?
     DE *thisDir = loadDirDE(&(ppi.parent[ppi.lei]));
 
     if (thisDir == NULL)
@@ -349,7 +351,7 @@ fdDir *fs_opendir(const char *pathname)
         fprintf(stderr, "File is not a directory\n");
         return NULL;
     }
-    
+
     // x counts the number of DEs in thisDir
     int cntEntries = thisDir->size / sizeof(DE);
     /*int x = 0;
@@ -361,42 +363,42 @@ fdDir *fs_opendir(const char *pathname)
     if (x < cntEntries)
     {
         */
-        fdDir *fdDirIP = malloc(sizeof(fdDir));
+    fdDir *fdDirIP = malloc(sizeof(fdDir));
 
-        if (fdDirIP == NULL)
-        {
-            fprintf(stderr, "fdDir malloc failed");
-            freeIfNotNeedDir(thisDir);
-            return NULL;
-        }
+    if (fdDirIP == NULL)
+    {
+        fprintf(stderr, "fdDir malloc failed");
+        freeIfNotNeedDir(thisDir);
+        return NULL;
+    }
 
-        for (uint32_t i = 0; i < sizeof(fdDir); i++)
-        {
-            ((char *)fdDirIP)[i] = 0;
-        }
+    for (uint32_t i = 0; i < sizeof(fdDir); i++)
+    {
+        ((char *)fdDirIP)[i] = 0;
+    }
 
-        fdDirIP->di = malloc(sizeof(struct fs_diriteminfo));
-        if (fdDirIP->di == NULL)
-        {
-            fprintf(stderr, "fdDirIP->di failed");
-            free(fdDirIP);
-            freeIfNotNeedDir(thisDir);
-            return NULL;
-        }
-        for (uint32_t i = 0; i < sizeof(struct fs_diriteminfo); i++)
-        {
-            ((char *)fdDirIP->di)[i] = 0;
-        }
-    //DEBUG open doesn't actually return a name yet
-        fdDirIP->di->d_reclen = sizeof(struct fs_diriteminfo);
-        fdDirIP->di->fileType = thisDir->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE; 
-        strncpy(fdDirIP->di->d_name, thisDir->name, 255);
-        fdDirIP->di->d_name[strlen(thisDir->name)] = '\0';
-        fdDirIP->directory = thisDir;
-        fdDirIP->numEntries = cntEntries;
-        fdDirIP->dirEntryPosition = 0;
+    fdDirIP->di = malloc(sizeof(struct fs_diriteminfo));
+    if (fdDirIP->di == NULL)
+    {
+        fprintf(stderr, "fdDirIP->di failed");
+        free(fdDirIP);
+        freeIfNotNeedDir(thisDir);
+        return NULL;
+    }
+    for (uint32_t i = 0; i < sizeof(struct fs_diriteminfo); i++)
+    {
+        ((char *)fdDirIP->di)[i] = 0;
+    }
+    // DEBUG open doesn't actually return a name yet
+    fdDirIP->di->d_reclen = sizeof(struct fs_diriteminfo);
+    fdDirIP->di->fileType = thisDir->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE;
+    strncpy(fdDirIP->di->d_name, thisDir->name, 255);
+    fdDirIP->di->d_name[strlen(thisDir->name)] = '\0';
+    fdDirIP->directory = thisDir;
+    fdDirIP->numEntries = cntEntries;
+    fdDirIP->dirEntryPosition = 0;
 
-        return fdDirIP;
+    return fdDirIP;
     /*}
     else
     {
@@ -418,9 +420,7 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
         return NULL;
     }
 
-
-
-    //Skip past any null DEs in the directory
+    // Skip past any null DEs in the directory
     while ((dirp->directory[dirp->dirEntryPosition]).name[0] == '\0' &&
            dirp->dirEntryPosition < dirp->numEntries)
     {
@@ -434,9 +434,9 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
     }
 
     DE *newDE = &(dirp->directory[dirp->dirEntryPosition]);
-    //printf("from fs_readdir newDE->name:%s\n", newDE->name);
+    // printf("from fs_readdir newDE->name:%s\n", newDE->name);
     strncpy(dirp->di->d_name, newDE->name, sizeof(newDE->name));
-    //printf("from fs_readdir dirp->di->d_name:%s\n", dirp->di->d_name);
+    // printf("from fs_readdir dirp->di->d_name:%s\n", dirp->di->d_name);
     dirp->di->fileType = newDE->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE;
     dirp->dirEntryPosition++;
 
@@ -558,7 +558,7 @@ int fs_isFile(char *filename)
 }
 
 //*************************************************************************************************
-//Returns 1 if path is a directory, 0 if fail.
+// Returns 1 if path is a directory, 0 if fail.
 int fs_isDir(char *pathname)
 {
 

@@ -24,6 +24,7 @@
 #include <string.h>
 
 #define NAME 31
+#define DIRECTORY_NUM_BLOCKS 5
 
 extern VolumeControlBlock *vcb; // Global definition, always kept in memory 
 extern Bitmap *bm;      //Global declaration of the freespace bitmap
@@ -52,5 +53,5 @@ typedef struct DE
 DE *initDir(int minEntries, DE *parent, Bitmap *bm);
 DE *loadDirDE(DE *dir); //loads a directory into memory
 DE *loadDirLBA(int numBlocks, int startBlock); //loads a dir into memory using LBA
-
+int updateDELBA(DE *dir); // Updates a DE on disk
 #endif
