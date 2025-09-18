@@ -343,8 +343,7 @@ fdDir *fs_opendir(const char *pathname)
         return NULL;
     }
 
-    // Can this just be DE *thisDir = &(ppi.parent[ppi.lei]));?
-    DE *thisDir = loadDirDE(&(ppi.parent[ppi.lei]));
+    DE *thisDir = loadDirLBA((ppi.parent[ppi.lei]).dirNumBlocks, (ppi.parent[ppi.lei]).LBAlocation);
 
     if (thisDir == NULL)
     {

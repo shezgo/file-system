@@ -112,11 +112,13 @@ int displayFiles (fdDir * dirp, int flall, int fllong)
 			{
 			if (fllong)
 				{
+				printf("fsshell.c:displayFiles: DEBUG: print di->d_name\n");
 				fs_stat (di->d_name, &statbuf);
 				printf ("%s    %9ld   %s\n", fs_isDir(di->d_name)?"D":"-", statbuf.st_size, di->d_name);
 				}
 			else
 				{
+				printf("fsshell.c:displayFiles: DEBUG2: print di->d_name\n");
 				printf ("%s\n", di->d_name);
 				}
 			}

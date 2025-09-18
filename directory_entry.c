@@ -21,7 +21,8 @@ DE *initDir(int maxEntries, DE *parent, Bitmap *bm)
 {
     int BLOCKSIZE = vcb->block_size;
     int bytesNeeded = maxEntries * sizeof(DE);
-    int blocksNeeded = (bytesNeeded + BLOCKSIZE - 1) / BLOCKSIZE;
+    //int blocksNeeded = (bytesNeeded + BLOCKSIZE - 1) / BLOCKSIZE;
+    int blocksNeeded = DIRECTORY_NUM_BLOCKS;//refactored for fixed directory size
     int bytesToAlloc = blocksNeeded * BLOCKSIZE;
 
     // Allocate memory for the directory
@@ -183,7 +184,7 @@ DE *loadDirLBA(int numBlocks, int startBlock)
         perror("Failed to allocate for buffer in loadDir\n");
         exit(EXIT_FAILURE);
     }
-
+    printf("loadDirLBA numBlocks:%d\n", numBlocks);
     int readReturn = LBAread(buffer, numBlocks, startBlock);
 
     if (readReturn != numBlocks)
