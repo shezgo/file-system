@@ -47,6 +47,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		
 		printf("bm->mapNumBlocks:%d\n",bm->mapNumBlocks);
 		rootGlobal = loadDirLBA(vcb->root_num_blocks, vcb->root_directory_block);
+		printf("fsInit RELOAD rootGlobal.dirNumBlocks:%d\n", rootGlobal[0].dirNumBlocks);
 		//Always start cwd from root when starting up file system.
 		printf("\nfsInit isBitUsed(bm, 12): %d\n\n", isBitUsed(bm, 12));
 		
@@ -118,9 +119,10 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	// Initialize and write root directory to disk. VCB root_start_block gets initialized
 	// in the initDir function, so writing vcb to disk must happen after.
 	rootGlobal = initDir(MAX_ENTRIES, NULL, bm);
+	printf("fsInit.c: rootGlobal.dirNumBlocks:%d\n", rootGlobal[0].dirNumBlocks);
 	//Current working directory always starts at root when starting file system.
 	cwdGlobal = rootGlobal; 
-	strcpy(cwdName, "/");
+	strcpy(cwdName, "/");//Having cwdName is redundant to cwdGlobal
 	int vcbWriteReturn = LBAwrite(vcb, 1, 0);
 
 	printf("sizeof(DE):%ld\n", sizeof(DE));

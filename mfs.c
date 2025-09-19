@@ -343,6 +343,7 @@ fdDir *fs_opendir(const char *pathname)
         return NULL;
     }
 
+    printf("fs_opendir: ppi.lei:%d\n", ppi.lei);
     DE *thisDir = loadDirLBA((ppi.parent[ppi.lei]).dirNumBlocks, (ppi.parent[ppi.lei]).LBAlocation);
 
     if (thisDir == NULL)

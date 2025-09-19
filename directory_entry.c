@@ -118,15 +118,15 @@ DE *initDir(int maxEntries, DE *parent, Bitmap *bm)
     if (dotdot == NULL)
     {
         dotdot = newDir;
-        vcb->root_directory_block = newDir->LBAlocation;
+        vcb->root_directory_block = newDir[0].LBAlocation;
         vcb->root_num_blocks = blocksNeeded;
     }
 
     memcpy(&newDir[1], dotdot, sizeof(DE));
     strcpy(newDir[1].name, "..");
 
-    LBAwrite(newDir, blocksNeeded, newLoc);
-
+    int writeReturn = LBAwrite(newDir, blocksNeeded, newLoc);
+    printf("initDir writeReturn:%d\n", writeReturn);
     return newDir;
 }
 
@@ -221,7 +221,7 @@ int updateDELBA(DE *dir)
     int readReturn = LBAread(buffer, DIRECTORY_NUM_BLOCKS, dir->LBAlocation);
     if (readReturn < 0)
     {
-        perror("Failed to updateDELBA \n");
+        perror("Failed to updateDELBA:LBAread \n");
         free(buffer);
         exit(EXIT_FAILURE);
     }
@@ -243,9 +243,9 @@ int updateDELBA(DE *dir)
     completeDir[0].lastModified = tc;
 
     int ret = LBAwrite(completeDir, completeDir[0].dirNumBlocks, completeDir[0].LBAlocation);
-    if (ret != 1)
+    if (ret != completeDir[0].dirNumBlocks)
     {
-        perror("Failed to updateDELBA \n");
+        perror("Failed to updateDELBA: LBAwrite \n");
         free(completeDir);
         exit(EXIT_FAILURE);
     }
@@ -266,13 +266,13 @@ int updateDELBA(DE *dir)
     parent[parentIndex].lastAccessed = tc;
     parent[parentIndex].lastModified = tc;
     ret = LBAwrite(parent, parent[0].dirNumBlocks, parent[0].LBAlocation);
-    if (ret != 1)
+    /*if (ret != 1)
     {
         perror("Failed to updateDELBA \n");
         free(parent);
         free(completeDir);
         exit(EXIT_FAILURE);
-    }
+    }*/
 
     free(parent);
     free(completeDir);

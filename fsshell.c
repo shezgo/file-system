@@ -210,6 +210,7 @@ int cmd_ls (int argcnt, char *argvec[])
 			if (fs_isDir(argvec[k]))
 				{
 				fdDir * dirp;
+				printf("ls first clause: argvec[k]:%s\n", argvec[k]);
 				dirp = fs_opendir (argvec[k]);
 				printf("first clause in ls\n");
 				displayFiles (dirp, flall, fllong);
@@ -231,7 +232,7 @@ int cmd_ls (int argcnt, char *argvec[])
 	else   // no pathname/filename specified - use cwd
 		{
 		char * path = fs_getcwd(cwd, DIRMAX_LEN);	//get current working directory
-
+		printf("ls no pathname: path:%s\n", path);
 		fdDir * dirp;
 		dirp = fs_opendir (path);
 		printf("second clause in ls\n");
