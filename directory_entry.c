@@ -227,9 +227,12 @@ int updateDELBA(DE *dir)
     }
 
     DE *completeDir = (DE *)buffer;
-    if (completeDir == NULL)
+    
+    //Ensure that what was read into the buffer is a valid directory and not junk data (un-init)
+    if (!(completeDir[0].isDirectory == -1 || completeDir[0].isDirectory == 0 || 
+    completeDir[0].isDirectory ==1))
     {
-        fprintf(stderr, "Directory is null\n");
+        fprintf(stderr, "updateDELBA: Directory is uninitialized.\n");
         return -1;
     }
     if (completeDir[0].isDirectory == 0)

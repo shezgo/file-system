@@ -34,7 +34,7 @@ int findNameInDir(DE *parent, char *name)
         fprintf(stderr, "File name is null\n");
         return -1;
     }
-    int numEntries = parent->size / sizeof(DE);
+    int numEntries = parent[0].size / sizeof(DE);
     for (int i = 0; i < numEntries; i++)
     {
         printf("findNameInDir: parent[%d].name:%s\n", i, parent[i].name);
@@ -296,10 +296,10 @@ int fs_mkdir(const char *path, mode_t mode)
     printf("ppi.parent time creation:%ld\n", ppi.parent->timeCreation);
     memcpy(&(ppi.parent[x]), newDir, sizeof(DE)); // this is supposed to set newDir to ppi.parent[x].
     // then ppi.le is supposed to be the name...but ppi.le might not be correct.
-    printf("from fs_mkdir ppi.le:%s", ppi.le);
+    printf("from fs_mkdir ppi.le:%s\n", ppi.le);
     strncpy(ppi.parent[x].name, ppi.le, sizeof(ppi.parent[x].name) - 1);
     ppi.parent[x].name[sizeof(ppi.parent[x].name) - 1] = '\0';
-    printf("from fs_mkdir ppi.parent[x].name:%s", ppi.parent[x].name);
+    printf("from fs_mkdir ppi.parent[x].name:%s\n", ppi.parent[x].name);
 
     int uDRet = updateDELBA(newDir);
 
