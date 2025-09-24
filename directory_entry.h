@@ -50,7 +50,7 @@ typedef struct DE
 
 // Since this is a pointer, we'll want this loaded into RAM. For root dir, parent will point to null
 // so just pass in null.
-DE *initDir(int maxEntries, DE *parent, Bitmap *bm);
+DE *initDir(int maxEntries, DE *parent, int lei, Bitmap *bm);
 DE *loadDirDE(DE *dir); //loads a directory into memory
 DE *loadDirLBA(int numBlocks, int startBlock); //Creates and loads a dir into memory using LBA
 int updateDELBA(DE *dir); // Updates a DE on disk

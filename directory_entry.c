@@ -17,7 +17,7 @@
 #include "directory_entry.h"
 #include "fsInit.h"
 
-DE *initDir(int maxEntries, DE *parent, Bitmap *bm)
+DE *initDir(int maxEntries, DE *parent, int lei, Bitmap *bm)
 {
     int BLOCKSIZE = vcb->block_size;
     int bytesNeeded = maxEntries * sizeof(DE);

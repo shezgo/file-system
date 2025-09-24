@@ -306,6 +306,7 @@ int fs_mkdir(const char *path, mode_t mode)
     ppi.parent[x].name[sizeof(ppi.parent[x].name) - 1] = '\0';
     printf("from fs_mkdir ppi.parent[x].name:%s\n", ppi.parent[x].name);
 
+    
     int uDRet = updateDELBA(newDir);
 
     if (x == 1)
