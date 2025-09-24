@@ -52,6 +52,7 @@ typedef struct DE
 // so just pass in null.
 DE *initDir(int maxEntries, DE *parent, Bitmap *bm);
 DE *loadDirDE(DE *dir); //loads a directory into memory
-DE *loadDirLBA(int numBlocks, int startBlock); //loads a dir into memory using LBA
+DE *loadDirLBA(int numBlocks, int startBlock); //Creates and loads a dir into memory using LBA
 int updateDELBA(DE *dir); // Updates a DE on disk
+void *print5DEs(DE *dir); //Prints first 5 DEs from a directory
 #endif

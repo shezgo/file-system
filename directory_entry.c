@@ -21,8 +21,8 @@ DE *initDir(int maxEntries, DE *parent, Bitmap *bm)
 {
     int BLOCKSIZE = vcb->block_size;
     int bytesNeeded = maxEntries * sizeof(DE);
-    //int blocksNeeded = (bytesNeeded + BLOCKSIZE - 1) / BLOCKSIZE;
-    int blocksNeeded = DIRECTORY_NUM_BLOCKS;//refactored for fixed directory size
+    // int blocksNeeded = (bytesNeeded + BLOCKSIZE - 1) / BLOCKSIZE;
+    int blocksNeeded = DIRECTORY_NUM_BLOCKS; // refactored for fixed directory size
     int bytesToAlloc = blocksNeeded * BLOCKSIZE;
 
     // Allocate memory for the directory
@@ -202,6 +202,23 @@ DE *loadDirLBA(int numBlocks, int startBlock)
 // PICKUP/DEBUG: Can I ensure this^ with reading into a buffer and freeing within this method?
 //
 
+void *print5DEs(DE *dir)
+{
+    for (int i = 0; i < 5; i++)
+    {
+        printf("name: %s\n"
+               "size: %ld\n"
+               "LBAlocation: %ld\n"
+               "dirNumBlocks: %d\n",
+               dir[i].name,
+               dir[i].size,
+               dir[i].LBAlocation,
+               dir[i].dirNumBlocks);
+    }
+    printf("End print\n");
+    return NULL;
+}
+
 int updateDELBA(DE *dir)
 {
     /*
@@ -211,73 +228,49 @@ int updateDELBA(DE *dir)
 
     */
 
-    void *buffer = malloc(vcb->block_size * DIRECTORY_NUM_BLOCKS);
-    if (buffer == NULL)
-    {
-        perror("Failed to allocate for buffer in updateDELBA\n");
-        exit(EXIT_FAILURE);
-    }
-
-    int readReturn = LBAread(buffer, DIRECTORY_NUM_BLOCKS, dir->LBAlocation);
-    if (readReturn < 0)
-    {
-        perror("Failed to updateDELBA:LBAread \n");
-        free(buffer);
-        exit(EXIT_FAILURE);
-    }
-
-    DE *completeDir = (DE *)buffer;
-    
-    //Ensure that what was read into the buffer is a valid directory and not junk data (un-init)
-    if (!(completeDir[0].isDirectory == -1 || completeDir[0].isDirectory == 0 || 
-    completeDir[0].isDirectory ==1))
-    {
-        fprintf(stderr, "updateDELBA: Directory is uninitialized.\n");
-        return -1;
-    }
-    if (completeDir[0].isDirectory == 0)
-    {
-        fprintf(stderr, "updateDELBA: DE is not a directory.\n");
-        return 1;
-    }
-
     time_t tc = time(NULL);
-    completeDir[0].lastAccessed = tc;
-    completeDir[0].lastModified = tc;
+    dir[0].lastAccessed = tc;
+    dir[0].lastModified = tc;
 
-    int ret = LBAwrite(completeDir, completeDir[0].dirNumBlocks, completeDir[0].LBAlocation);
-    if (ret != completeDir[0].dirNumBlocks)
+    // Save the contents of the passed directory
+    int ret = LBAwrite((void *)dir, dir[0].dirNumBlocks, dir[0].LBAlocation);
+    if (ret != dir[0].dirNumBlocks)
     {
         perror("Failed to updateDELBA: LBAwrite \n");
-        free(completeDir);
         exit(EXIT_FAILURE);
     }
+    print5DEs(dir);
 
-    // need to allocate memory for the parent directory first though
-    DE *parent = (DE *)malloc(vcb->block_size * DIRECTORY_NUM_BLOCKS);
-    if (parent == NULL)
+    // Next, load, edit, and save this directory's metadata in its parent directory.
+    DE *parent = loadDirLBA(dir[1].dirNumBlocks, dir[1].LBAlocation);
+    print5DEs(parent);
+    printf("updateDELBA after loading parent\n");
+    int index = findNameInDir(parent, dir[0].name);
+    if (index == -1)
     {
-        perror("Failed to allocate for parent buffer in updateDELBA\n");
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "File name not found in parent\n");
+        return -1;
     }
 
-    parent = loadDirDE(&(completeDir[1]));
-    int parentIndex = findNameInDir(parent, completeDir[0].name);
-    // Now, edit the metadata inside the parent
-    // and rewrite the parent directory to disk
+    parent[index].lastAccessed = tc;
+    parent[index].lastModified = tc;
+    parent[index].LBAlocation = dir[0].LBAlocation;
+    parent[index].LBAindex = dir[0].LBAindex;
+    parent[index].size = dir[0].size;
+    strcpy(parent[index].name, dir[0].name);
+    parent[index].isDirectory = dir[0].isDirectory;
+    parent[index].timeCreation = dir[0].timeCreation;
+    parent[index].dirNumBlocks = dir[0].dirNumBlocks;
 
-    parent[parentIndex].lastAccessed = tc;
-    parent[parentIndex].lastModified = tc;
-    ret = LBAwrite(parent, parent[0].dirNumBlocks, parent[0].LBAlocation);
-    /*if (ret != 1)
+    // Save the contents of the parent of the passed directory
+    ret = LBAwrite((void *)parent, parent[0].dirNumBlocks, parent[0].LBAlocation);
+    if (ret != parent[0].dirNumBlocks)
     {
         perror("Failed to updateDELBA \n");
         free(parent);
-        free(completeDir);
         exit(EXIT_FAILURE);
-    }*/
+    }
 
     free(parent);
-    free(completeDir);
     return ret;
 }

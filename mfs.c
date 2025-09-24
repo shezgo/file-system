@@ -35,6 +35,11 @@ int findNameInDir(DE *parent, char *name)
         return -1;
     }
     int numEntries = parent[0].size / sizeof(DE);
+    
+    printf("findNameInDir: sizeof(DE):%ld\n", sizeof(DE));
+    printf("findNameInDir: parent[0].size:%ld\n", parent[0].size);
+    printf("findNameInDir: numEntries:%d\n", numEntries);
+    
     for (int i = 0; i < numEntries; i++)
     {
         printf("findNameInDir: parent[%d].name:%s\n", i, parent[i].name);
@@ -131,11 +136,11 @@ int saveDir(DE *directory)
 parsePath loads the parent in a path and finds if the file (last element) exists or not.
 When using this, use parsePath(char * path, &ppi)
 Return values of this function:
-1. (int)Success or error - check if each index before le is a valid directory
+1. (int) 0 for Success or 1 for error - check if each index before le is a valid directory
 ^This is the true return value for parsePath. The rest will be in struct ppinfo.
 2.  DE * parentPointer to parent loaded in memory
 3. char * lastElement is the name of the last element in the path
-4. int lastElementIndex - which entry is it inside the parent? -1 if not exist
+4. int lastElementIndex - which entry is it inside the parent? -1 if does not exist
 */
 int parsePath(char *path, ppinfo *ppi)
 {
