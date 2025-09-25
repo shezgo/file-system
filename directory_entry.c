@@ -17,7 +17,7 @@
 #include "directory_entry.h"
 #include "fsInit.h"
 
-DE *initDir(int maxEntries, DE *parent, int lei, Bitmap *bm)
+DE *initDir(int maxEntries, DE *parent, int parentIndex, Bitmap *bm)
 {
     int BLOCKSIZE = vcb->block_size;
     int bytesNeeded = maxEntries * sizeof(DE);
@@ -62,44 +62,6 @@ DE *initDir(int maxEntries, DE *parent, int lei, Bitmap *bm)
         newDir[i].dirNumBlocks = -1;
     }
 
-    /*  Old Code
-        // DEBUG confirm that this works
-        // Init LBAlocations depending on how many entries per block there are.
-
-        for (int i = 0, k = newLoc; i < actualEntries; i += entriesPerBlock, k++)
-        {
-            for (int j = 0; j < entriesPerBlock; j++)
-            {
-                if ((i + j) < actualEntries)
-                {
-                    newDir[i + j].LBAlocation = k;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-        */
-
-    /* More old code
-     // Initialize the entries in the directory - start with 2 because . and .. are at 0 and 1
-     for (int i = 2; i < actualEntries; i++)
-     {
-         newDir[i].size = -1;
-         newDir[i].name[0] = '\0';
-         newDir[i].timeCreation = (time_t)(-1);
-         newDir[i].lastAccessed = (time_t)(-1);
-         newDir[i].lastModified = (time_t)(-1);
-         newDir[i].isDirectory = -1;
-         newDir[i].dirNumBlocks = -1;
-     }
-     /*
-         for the first entriesPerBlock, assign newLoc + 0to LBAlocation
-         for entriesPerBlock to 2* entriesPerBlock, assign newLoc + 1 to LBA location
-         for 2*entriesPerBlock to 3*entriesPerBlock, assign newLoc + 2 to LBA location
-     */
-
     // Initialize . entry in the directory
     printf("From directory_entry.h->initDir: newLoc:%d blocksNeeded:%d\n", newLoc, blocksNeeded);
     time_t tc = time(NULL);
@@ -135,20 +97,19 @@ DE *initDir(int maxEntries, DE *parent, int lei, Bitmap *bm)
     printf("initDir writeReturn:%d\n", writeReturn);
     if (writeReturn != blocksNeeded)
     {
-        perror("Failed to updateDELBA \n");
-        free(parent);
+        perror("Failed to initDir \n");
         exit(EXIT_FAILURE);
     }
 
-    if (parent != NULL && lei >= 0)
+    if (parent != NULL && parentIndex >= 0)
     {
-        memcpy(&parent[lei], &newDir[0], sizeof(DE));
+        memcpy(&parent[parentIndex], &newDir[0], sizeof(DE));
     }
 
     int writeReturn2 = LBAwrite((void *)parent, parent[0].dirNumBlocks, parent[0].LBAlocation);
     if (writeReturn2 != parent[0].dirNumBlocks)
     {
-        perror("Failed to updateDELBA \n");
+        perror("Failed to initDir (parent) \n");
         exit(EXIT_FAILURE);
     }
 

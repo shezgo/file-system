@@ -280,8 +280,15 @@ int fs_mkdir(const char *path, mode_t mode)
         return (2);
     }
 
-    // DEBUG this just had ppi.parent as second parameter before
-    DE *newDir = initDir(MAX_ENTRIES, ppi.parent, ppi.lei, bm);
+    int x = findUnusedDE(ppi.parent);
+
+    if (x == -1)
+    {
+        fprintf(stderr, "No unused DE in parent");
+        return -1;
+    }
+
+    DE *newDir = initDir(MAX_ENTRIES, ppi.parent, x, bm);
 
     if (newDir == NULL)
     {
@@ -289,15 +296,7 @@ int fs_mkdir(const char *path, mode_t mode)
         return -1;
     }
 
-    int x = findUnusedDE(ppi.parent);
-
-    if (x == -1)
-    {
-        fsRelease(bm, newDir->LBAlocation, newDir->dirNumBlocks);
-        free(newDir);
-        fprintf(stderr, "No unused DE in parent");
-        return -1;
-    }
+/*
     printf("ppi.parent time creation:%ld\n", ppi.parent->timeCreation);
     memcpy(&(ppi.parent[x]), newDir, sizeof(DE)); // this is supposed to set newDir to ppi.parent[x].
     // then ppi.le is supposed to be the name...but ppi.le might not be correct.
@@ -308,15 +307,7 @@ int fs_mkdir(const char *path, mode_t mode)
 
     
     int uDRet = updateDELBA(newDir);
-
-    if (x == 1)
-    {
-        printf("updateDELBA failed from fs_mkdir\n");
-        return -1;
-    }
-    // PICKUP HERE - You last updated saveDir(newDir) to be updateDELBA instead. Having a hard time
-    // conceptualizing how to know which directories belong to which from pure disk memory.
-
+    */
     freeIfNotNeedDir(newDir);
 
     return 0;
