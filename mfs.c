@@ -281,7 +281,7 @@ int fs_mkdir(const char *path, mode_t mode)
     }
 
     // DEBUG this just had ppi.parent as second parameter before
-    DE *newDir = initDir(MAX_ENTRIES, &(ppi.parent[ppi.lei]), bm);
+    DE *newDir = initDir(MAX_ENTRIES, ppi.parent, ppi.lei, bm);
 
     if (newDir == NULL)
     {

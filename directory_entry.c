@@ -50,7 +50,8 @@ DE *initDir(int maxEntries, DE *parent, int lei, Bitmap *bm)
     for (int i = 0; i < actualEntries; i++)
     {
         int blockOffset = i / (BLOCKSIZE / sizeof(DE)); // Determine the block this entry belongs to
-        newDir[i].LBAlocation = newLoc + blockOffset;
+        // newDir[i].LBAlocation = newLoc + blockOffset;
+        newDir[i].LBAlocation = -1; // DEs where i >=2 have starting locations of directories/files
         newDir[i].LBAindex = (i % entriesPerBlock) * sizeof(DE);
         newDir[i].size = -1;
         newDir[i].name[0] = '\0';
@@ -110,6 +111,7 @@ DE *initDir(int maxEntries, DE *parent, int lei, Bitmap *bm)
     newDir[0].lastAccessed = tc;
     newDir[0].lastModified = tc;
     newDir[0].dirNumBlocks = blocksNeeded;
+    newDir[0].LBAlocation = newLoc;
 
     // Initialize the .. (parent) entry in the directory. This inits root correctly as well.
     DE *dotdot = parent;
@@ -117,16 +119,39 @@ DE *initDir(int maxEntries, DE *parent, int lei, Bitmap *bm)
     // Root case
     if (dotdot == NULL)
     {
-        dotdot = newDir;
+        dotdot = &newDir[0];
         vcb->root_directory_block = newDir[0].LBAlocation;
         vcb->root_num_blocks = blocksNeeded;
     }
 
     memcpy(&newDir[1], dotdot, sizeof(DE));
     strcpy(newDir[1].name, "..");
+    if (parent != NULL)
+    {
+        newDir[1].LBAlocation = parent[0].LBAlocation;
+    }
 
-    int writeReturn = LBAwrite(newDir, blocksNeeded, newLoc);
+    int writeReturn = LBAwrite((void *)newDir, blocksNeeded, newLoc);
     printf("initDir writeReturn:%d\n", writeReturn);
+    if (writeReturn != blocksNeeded)
+    {
+        perror("Failed to updateDELBA \n");
+        free(parent);
+        exit(EXIT_FAILURE);
+    }
+
+    if (parent != NULL && lei >= 0)
+    {
+        memcpy(&parent[lei], &newDir[0], sizeof(DE));
+    }
+
+    int writeReturn2 = LBAwrite((void *)parent, parent[0].dirNumBlocks, parent[0].LBAlocation);
+    if (writeReturn2 != parent[0].dirNumBlocks)
+    {
+        perror("Failed to updateDELBA \n");
+        exit(EXIT_FAILURE);
+    }
+
     return newDir;
 }
 
