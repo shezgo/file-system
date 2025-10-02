@@ -389,7 +389,7 @@ fdDir *fs_opendir(const char *pathname)
     // DEBUG open doesn't actually return a name yet
     fdDirIP->di->d_reclen = sizeof(struct fs_diriteminfo);
     fdDirIP->di->fileType = thisDir->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE;
-    strncpy(fdDirIP->di->d_name, thisDir->name, 255);
+    strncpy(fdDirIP->di->d_name, (ppi.parent[ppi.lei]).name, 255);
     fdDirIP->di->d_name[strlen(thisDir->name)] = '\0';
     fdDirIP->directory = thisDir;
     fdDirIP->numEntries = cntEntries;

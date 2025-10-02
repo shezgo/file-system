@@ -33,7 +33,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	}
 
 	vcb = loadVCBtoMem(blockSize);
-
+/*
 	// ********************************************************************************************
 	// If the file system has already been mounted,  read in all variables into
 	// memory so they are initialized.
@@ -79,7 +79,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	// ********************************************************************************************
 	// End if file system is already mounted
 	// ********************************************************************************************
-
+*/
 	printf("Mounting file system\n");
 
 	// If the volume hasn't been initialized
@@ -118,6 +118,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 	// Initialize and write root directory to disk. VCB root_start_block gets initialized
 	// in the initDir function, so writing vcb to disk must happen after.
+	printf("fsInit.c: before rootGlobal init\n");
 	rootGlobal = initDir(MAX_ENTRIES, NULL, -1, bm);
 	printf("fsInit.c: rootGlobal.dirNumBlocks:%d\n", rootGlobal[0].dirNumBlocks);
 	//Current working directory always starts at root when starting file system.
