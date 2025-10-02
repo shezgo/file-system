@@ -106,13 +106,16 @@ DE *initDir(int maxEntries, DE *parent, int parentIndex, Bitmap *bm)
         memcpy(&parent[parentIndex], &newDir[0], sizeof(DE));
     }
     printf("directory_entry.c debug 2\n");
-    int writeReturn2 = LBAwrite((void *)parent, parent[0].dirNumBlocks, parent[0].LBAlocation);
-    
-        printf("directory_entry.c debug 3\n");
-    if (writeReturn2 != parent[0].dirNumBlocks)
+
+    if (parent != NULL)
     {
-        perror("Failed to initDir (parent) \n");
-        exit(EXIT_FAILURE);
+        int writeReturn2 = LBAwrite((void *)parent, parent[0].dirNumBlocks, parent[0].LBAlocation);
+
+        if (writeReturn2 != parent[0].dirNumBlocks)
+        {
+            perror("Failed to initDir (parent) \n");
+            exit(EXIT_FAILURE);
+        }
     }
     printf("directory_entry.c debug 4\n");
     return newDir;
