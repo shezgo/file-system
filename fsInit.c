@@ -119,7 +119,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	// Initialize and write root directory to disk. VCB root_start_block gets initialized
 	// in the initDir function, so writing vcb to disk must happen after.
 	printf("fsInit.c: before rootGlobal init\n");
-	rootGlobal = initDir(MAX_ENTRIES, NULL, -1, bm);
+	rootGlobal = initDir(MAX_ENTRIES, NULL, -1, NULL, bm);
 	printf("fsInit.c: rootGlobal.dirNumBlocks:%d\n", rootGlobal[0].dirNumBlocks);
 	//Current working directory always starts at root when starting file system.
 	cwdGlobal = rootGlobal; 

@@ -288,7 +288,8 @@ int fs_mkdir(const char *path, mode_t mode)
         return -1;
     }
 
-    DE *newDir = initDir(MAX_ENTRIES, ppi.parent, x, bm);
+    DE *newDir = initDir(MAX_ENTRIES, &ppi.parent, ppi.lei, ppi.le, bm);
+    
 
     if (newDir == NULL)
     {

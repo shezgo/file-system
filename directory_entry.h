@@ -29,7 +29,6 @@
 extern VolumeControlBlock *vcb; // Global definition, always kept in memory 
 extern Bitmap *bm;      //Global declaration of the freespace bitmap
 
-
 //To find the logical address of a DE within its parent directory, just use
 //index in its parent directory * sizeof(DE).
 typedef struct DE
@@ -51,7 +50,7 @@ typedef struct DE
 // Since this is a pointer, we'll want this loaded into RAM. For root dir, parent points to null.
 // so just pass in null and set parentIndex to -1.
 // initDir creates the directory and assigns it as a DE to its parent directory
-DE *initDir(int maxEntries, DE *parent, int parentIndex, Bitmap *bm);
+DE *initDir(int maxEntries, DE *parent, int parentIndex, char * ppile, Bitmap *bm);
 DE *loadDirDE(DE *dir); //loads a directory into memory
 DE *loadDirLBA(int numBlocks, int startBlock); //Creates and loads a dir into memory using LBA
 int updateDELBA(DE *dir); // Updates a DE on disk

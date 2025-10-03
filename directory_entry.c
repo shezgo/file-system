@@ -17,8 +17,9 @@
 #include "directory_entry.h"
 #include "fsInit.h"
 
-DE *initDir(int maxEntries, DE *parent, int parentIndex, Bitmap *bm)
+DE *initDir(int maxEntries, DE *parent, int parentIndex, char * ppile, Bitmap *bm)
 {
+
     int BLOCKSIZE = vcb->block_size;
     int bytesNeeded = maxEntries * sizeof(DE);
     // int blocksNeeded = (bytesNeeded + BLOCKSIZE - 1) / BLOCKSIZE;
@@ -101,14 +102,19 @@ DE *initDir(int maxEntries, DE *parent, int parentIndex, Bitmap *bm)
         exit(EXIT_FAILURE);
     }
     printf("directory_entry.c debug 1\n");
-    if (parent != NULL && parentIndex >= 0)
+    printf("directory_entry.c parent.name:%s\nparentIndex:%d\nppile:%s\n", 
+     parent[0].name, parentIndex, ppile);
+    if (parent != NULL && parentIndex >= 0 && ppile != NULL)
     {
+        printf("directory_entry.c debug 1.5\n");
         memcpy(&parent[parentIndex], &newDir[0], sizeof(DE));
+        strcpy(parent[parentIndex].name, ppile);
     }
     printf("directory_entry.c debug 2\n");
 
     if (parent != NULL)
     {
+        printf("directory_entry.c debug 3\n");
         int writeReturn2 = LBAwrite((void *)parent, parent[0].dirNumBlocks, parent[0].LBAlocation);
 
         if (writeReturn2 != parent[0].dirNumBlocks)
