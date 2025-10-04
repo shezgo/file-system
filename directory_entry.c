@@ -87,12 +87,9 @@ DE *initDir(int maxEntries, DE *parent, int parentIndex, char * ppile, Bitmap *b
         vcb->root_num_blocks = blocksNeeded;
     }
 
-    memcpy(&newDir[1], dotdot, sizeof(DE));
+    //Define the new directory's [1] index - works for both root or non-root case
+    memcpy(&newDir[1], &dotdot[0], sizeof(DE));
     strcpy(newDir[1].name, "..");
-    if (parent != NULL)
-    {
-        newDir[1].LBAlocation = parent[0].LBAlocation;
-    }
 
     int writeReturn = LBAwrite((void *)newDir, blocksNeeded, newLoc);
     printf("initDir writeReturn:%d\n", writeReturn);
@@ -101,11 +98,13 @@ DE *initDir(int maxEntries, DE *parent, int parentIndex, char * ppile, Bitmap *b
         perror("Failed to initDir \n");
         exit(EXIT_FAILURE);
     }
+
     printf("directory_entry.c debug 1\n");
-    printf("directory_entry.c parent.name:%s\nparentIndex:%d\nppile:%s\n", 
-     parent[0].name, parentIndex, ppile);
+
     if (parent != NULL && parentIndex >= 0 && ppile != NULL)
     {
+    printf("directory_entry.c parent.name:%s\nparentIndex:%d\nppile:%s\n", 
+     parent[0].name, parentIndex, ppile);
         printf("directory_entry.c debug 1.5\n");
         memcpy(&parent[parentIndex], &newDir[0], sizeof(DE));
         strcpy(parent[parentIndex].name, ppile);
@@ -116,7 +115,7 @@ DE *initDir(int maxEntries, DE *parent, int parentIndex, char * ppile, Bitmap *b
     {
         printf("directory_entry.c debug 3\n");
         int writeReturn2 = LBAwrite((void *)parent, parent[0].dirNumBlocks, parent[0].LBAlocation);
-
+        printf("initDir: parent writeReturn2:%d\n", writeReturn2);
         if (writeReturn2 != parent[0].dirNumBlocks)
         {
             perror("Failed to initDir (parent) \n");

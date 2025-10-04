@@ -36,6 +36,7 @@ int findNameInDir(DE *parent, char *name)
     }
     int numEntries = parent[0].size / sizeof(DE);
     
+    
     printf("findNameInDir: sizeof(DE):%ld\n", sizeof(DE));
     printf("findNameInDir: parent[0].size:%ld\n", parent[0].size);
     printf("findNameInDir: numEntries:%d\n", numEntries);
@@ -193,12 +194,14 @@ int parsePath(char *path, ppinfo *ppi)
     {
         ppi->le = token1;
 
+        //if findNameInDir can't find token1, it returns -1 to ppi->lei.
         ppi->lei = findNameInDir(parent, token1);
         printf("pp debug - ppi->lei:%d\n", ppi->lei);
         token2 = strtok_r(NULL, "/", &saveptr);
         printf("pp debug - token2:%s\n", token2 ? token2 : "NULL");
         printf("pp debug print token1:%s, ppi->le:%s\n", token1, ppi->le);
         // Success: If token2 is null then token1 is the last element.
+        // If token2 is not null, that tells you token1 has to exist and must be a directory.
         if (token2 == NULL)
         {
             ppi->parent = parent;
@@ -206,7 +209,8 @@ int parsePath(char *path, ppinfo *ppi)
             printf("pp debug2 print token1:%s, ppi->le:%s\n", token1, ppi->le);
             return (0);
         }
-        // If token2 is not null, that tells you token1 has to exist and must be a directory.
+        
+        //This triggers if at any point in the path, an element doesn't exist
         if (ppi->lei < 0) // the name doesn’t exist, invalid path
         {
             printf("pp debug 1\n");
@@ -214,11 +218,11 @@ int parsePath(char *path, ppinfo *ppi)
             return -1;
         }
 
-        // Helper function EntryisDir
+        // Helper function EntryisDir - if parent[ppi->lei] is NOT a directory, error?
         if (entryIsDir(parent, ppi->lei) == 0)
         {
             printf("pp debug 2\n");
-            fprintf(stderr, "Invalid path\n");
+            fprintf(stderr, "mfs.c:parsePath: parent[ppi->lei] is not a directory. \n");
             return -1;
         }
         // Now we know token 1 does exist, is valid, and is a directory. So we want to load it/get
@@ -228,7 +232,8 @@ int parsePath(char *path, ppinfo *ppi)
             fprintf(stderr, "ppi->lei is out of bounds");
             return -1;
         }
-        DE *temp = loadDirDE(&(parent[ppi->lei]));
+
+        DE *temp = loadDirLBA(parent[ppi->lei].dirNumBlocks, parent[ppi->lei].LBAlocation);
 
         // Helper function freeIfNotNeedDir(parent)
         freeIfNotNeedDir(parent); // not null, not cwd, not root
@@ -288,7 +293,7 @@ int fs_mkdir(const char *path, mode_t mode)
         return -1;
     }
 
-    DE *newDir = initDir(MAX_ENTRIES, &ppi.parent, ppi.lei, ppi.le, bm);
+    DE *newDir = initDir(MAX_ENTRIES, ppi.parent, ppi.lei, ppi.le, bm);
     
 
     if (newDir == NULL)
