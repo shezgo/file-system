@@ -212,7 +212,7 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t *bm_bitmap)
     {
         ((char *)bm)[i] = 0;
     }
-
+ 
     // Allocate the size for bitmap - Convert the num bytes to num bits for bitmap malloc
     int blocksToBitsInBytes = (fsNumBlocks + 7) / 8;
 
@@ -223,6 +223,7 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t *bm_bitmap)
     //IF file system has not been initialized yet, this function will receive null as a parameter.
     if (bm_bitmap == NULL)
     {
+
         bm->bitmap = (uint8_t *)malloc(roundedBytes);
         if (bm->bitmap == NULL)
         {
@@ -230,14 +231,14 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t *bm_bitmap)
             free(bm);
             exit(EXIT_FAILURE);
         }
-        
+
 
         // Initialize all bits in the bitmap to 0 (free)
         for (int i = 0; i < roundedBytes; i++)
         {
             bm->bitmap[i] = 0;
         }
-
+ 
         /*Set the bits that we know are going to be occupied. This includes the VCB in logical b0,
         but physical block 0 contains Professor's partition table. Also set blocks needed
         to store the free space map.
@@ -247,10 +248,11 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t *bm_bitmap)
         bm->mapNumBlocks = (blocksToBitsInBytes + blockSize - 1) / blockSize;
         bm->bitmapSize = bm->mapNumBlocks * blockSize;
 
-        for (int i = 0; i <= bm->mapNumBlocks; i++)
+        for (int i = 1; i <= 1 + (bm->mapNumBlocks - 1); i++)
         {
             setBit(bm, i);
         }
+
     }
 
     else

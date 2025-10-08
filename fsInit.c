@@ -33,7 +33,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	}
 
 	vcb = loadVCBtoMem(blockSize);
-
+/*
 	// ********************************************************************************************
 	// If the file system has already been mounted,  read in all variables into
 	// memory so they are initialized.
@@ -79,7 +79,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	// ********************************************************************************************
 	// End if file system is already mounted
 	// ********************************************************************************************
-
+*/
 	printf("Mounting file system\n");
 
 	// If the volume hasn't been initialized
@@ -110,7 +110,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	vcb->total_blocks = numberOfBlocks;
 	vcb->free_blocks = vcb->total_blocks - vcb->fsmap_num_blocks - 2; // subtract blocks for bitmap, vcb, root
 	vcb->signature = 0x1A;								  // This is an arbitrary number to check if already initialized
-	vcb->fsmap_start_block = 2;
+	vcb->fsmap_start_block = 1;
 	vcb->fsmap_end_block = bm->mapNumBlocks;
 	vcb->fsmap_num_blocks = bm->mapNumBlocks;
 	vcb->root_directory_block = vcb->fsmap_end_block + 1;
@@ -124,7 +124,14 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	//Current working directory always starts at root when starting file system.
 	cwdGlobal = rootGlobal; 
 	strcpy(cwdName, "/");//Having cwdName is redundant to cwdGlobal
+	
 	int vcbWriteReturn = LBAwrite(vcb, 1, 0);
+	if(vcbWriteReturn == 1){
+		setBit(bm, 0);
+	}
+	else{
+		fprintf(stderr, "fsInit.c: Failed to LBAwrite VCB\n");
+	}
 
 	printf("sizeof(DE):%ld\n", sizeof(DE));
 
