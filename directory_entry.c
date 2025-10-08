@@ -101,6 +101,11 @@ DE *initDir(int maxEntries, DE *parent, int parentIndex, char * ppile, Bitmap *b
 
     printf("directory_entry.c debug 1\n");
 
+//* PICKUP DEBUG: This block is not executing at all! Has to be where the issues is.
+    printf("parent pointer value: %p\n", (void *)parent);
+    printf("parentIndex:%d\n",parentIndex);
+printf("ppile pointer value: %p\n", (void *)ppile);
+
     if (parent != NULL && parentIndex >= 0 && ppile != NULL)
     {
     printf("directory_entry.c parent.name:%s\nparentIndex:%d\nppile:%s\n", 
@@ -108,6 +113,7 @@ DE *initDir(int maxEntries, DE *parent, int parentIndex, char * ppile, Bitmap *b
         printf("directory_entry.c debug 1.5\n");
         memcpy(&parent[parentIndex], &newDir[0], sizeof(DE));
         strcpy(parent[parentIndex].name, ppile);
+        printf("directory_entry.c parent[parentIndex].name:%s\n", parent[parentIndex].name);
     }
     printf("directory_entry.c debug 2\n");
 
