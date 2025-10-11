@@ -33,9 +33,9 @@ typedef struct Bitmap
 } Bitmap;
 
 
-// Function to set a bit (mark block as used)
+// Function to set a bit (mark block as used). Returns 1 if success, -1 if failure.
 int setBit(Bitmap *bm, int blockNumber);
-// Function to clear a bit (mark block as free)
+// Function to clear a bit (mark block as free). Returns 1 if success, -1 if failure.
 int clearBit(Bitmap *bm, int blockNumber);
 // Function to check if a block is 1 (used). Returns 1 if block (bit) is being used.
 int isBitUsed(Bitmap *bm, int blockNumber);

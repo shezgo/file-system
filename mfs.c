@@ -612,3 +612,65 @@ int fs_stat(const char *path, struct fs_stat *buf)
     buf->st_createtime = de->timeCreation;
     return 0;
 }
+
+//*************************************************************************************************
+// Removes a file. Returns 0 if success, -1 if failure.
+int fs_delete(char *filename)
+{
+    /*
+    Searches for the filename (where? from curdir?)
+    Check if filename exists in curdir.
+    If so:
+    1. clear the bytes (set to 0) from curdir[fileIndex].LBAlocation to LBAlocation + size, or entire blocks?
+        -set all blocks for the filesize to 0
+    2. clearBit in bitmap to mark the newly freed blocks
+    3. "delete the DE" at curdir[fileIndex] by resetting to default values for each DE in initDir.
+    4. return 0 if success
+
+    If the filename doesn't exist in curdir:
+    1. display a message saying file not found in curdir
+    2. return -1
+    */
+
+   int x = findNameInDir(cwdGlobal, filename);
+   if(x == -1){
+    fprintf("File not found in current directory.\n");
+    return -1;
+   }
+   else if (x > 1){
+    //Calculate how many blocks the file takes up.
+   int numBlocks = (cwdGlobal[x].size + vcb->block_size - 1)/ vcb->block_size;
+   char * emptyFile = (char *)malloc(numBlocks * vcb->block_size);
+   int writeReturn = LBAwrite(emptyFile, numBlocks, cwdGlobal[x].LBAlocation);
+   if (writeReturn == numBlocks){
+    for(int i = cwdGlobal->LBAlocation; i < cwdGlobal->LBAindex + numBlocks; i++)
+    {
+        int clearReturn = clearBit(bm->bitmap,i);
+        if (clearReturn == -1){
+            fprintf("fs_delete: clearBit failed.\n");
+            return -1;
+        }
+    }
+        cwdGlobal[x].LBAlocation = -1; // DEs where i >=2 have starting locations of directories/files
+        cwdGlobal[x].size = -1;
+        for (int i = 0; i < NAME + 1; i++)
+        {
+            cwdGlobal[x].name[i] = '\0';
+        }
+        cwdGlobal[x].timeCreation = (time_t)(-1);
+        cwdGlobal[x].lastAccessed = (time_t)(-1);
+        cwdGlobal[x].lastModified = (time_t)(-1);
+        cwdGlobal[x].isDirectory = -1;
+        cwdGlobal[x].dirNumBlocks = -1;
+   }
+   }
+   else{
+    fprintf("Invalid return value from findNameInDir\n");
+    return -1;
+   }
+}
+
+int fs_rmdir(const char *pathname)
+{
+    return 0;
+}
