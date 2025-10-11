@@ -639,7 +639,7 @@ int fs_delete(char *filename)
     }
     else if (x > 1)
     {
-        if(cwdGlobal[x].isDirectory == 1)
+        if (cwdGlobal[x].isDirectory == 1)
         {
             fprintf(stderr, "Path is a directory, not file.\n");
             return -1;
@@ -683,25 +683,26 @@ int fs_delete(char *filename)
         }
         else
         {
-            fprintf(stderr, "Invalid return value from findNameInDir\n");
+            fprintf(stderr, "fs_delete: LBAwrite failed.\n");
             return -1;
         }
     }
 }
+// Removes an empty directory. Returns 0 if success, -1 if failure.
 int fs_rmdir(const char *pathname)
 {
     /*
-    rmdir() removes the directory represented by ‘pathname’ if it is empty. 
+    rmdir() removes the directory represented by ‘pathname’ if it is empty.
     IF the directory is not empty then this function will not succeed.
     Use parsePath on the pathname
     Case 1: parsePath returns -2, Root case?
     print error and return -1
     Case 2: parsePath returns 0 for success and has valid ppi->lei
-    Case 3: returns 0 but invalid ppi->lei, 
+    Case 3: returns 0 but invalid ppi->lei,
     Case 4: parsePath returns -1 for failure meaning invalid pathname
 
     If parsePath succeeds:
-    check if the directory is empty. If so, 
+    check if the directory is empty. If so,
     delete the directory and its metadata in parent.
 
     If the directory is not empty, error message.
@@ -738,11 +739,11 @@ int fs_rmdir(const char *pathname)
     {
         fprintf(stderr, "parsePath failed.\n");
     }
-    
+
     if (parseFlag == 0)
     {
         /*
-        Check if this DE points to a dir or file.
+        Check if ppi.parent[ppi.lei] points to a dir or file.
         the last element in path will be at parent[lei].
         If it's a file, return error.
         If it's a directory:
@@ -750,15 +751,80 @@ int fs_rmdir(const char *pathname)
         -If it has any DEs in any index
             - print "directory is not empty" error
             - Free this directory from memory.
-            - Free parent directory from memory
             - return -1
         -If it's empty, delete itself and its metadata in its parent.
             -Write empty buffer to disk at parent[lei].lbalocation
             -Reset parent[lei].attributes
             -Rewrite parent to disk at parent[0].lbalocation
-            -Free parent directory
+            -Free dir
+
+            any bm updates needed?
         */
+        if (ppi.parent[ppi.lei].isDirectory == 0)
+        {
+            fprintf(stderr, "path is a file, not directory.\n");
+            return -1;
+        }
 
+        DE *dir = loadDirLBA(ppi.parent[ppi.lei].dirNumBlocks, ppi.parent[ppi.lei].LBAlocation);
+
+        int numDEs = (ppi.parent[0].size / sizeof(DE));
+
+        for (int i = 2; i < numDEs; i++)
+        {
+            if (ppi.parent[i].name[0] != '\0')
+            {
+                fprintf(stderr, "Directory is not empty - cannot rmdir.\n");
+                free(dir);
+                return -1;
+            }
+        }
+
+        // If code has made it here, path is a valid and empty directory.
+
+        // First overwrite the directory on disk, then clear metadata in parent.
+        char *emptyBuf = (char *)malloc(dir[0].dirNumBlocks * vcb->block_size);
+        int writeRet = LBAwrite(emptyBuf, dir[0].dirNumBlocks, dir[0].LBAlocation);
+        if (writeRet == ppi.parent[ppi.lei].dirNumBlocks)
+        {
+            for (int i = dir[0].LBAlocation; i < dir[0].LBAlocation + dir[0].dirNumBlocks; i++)
+            {
+                int clearReturn = clearBit(bm->bitmap, i);
+                if (clearReturn == -1)
+                {
+                    fprintf(stderr, "fs_rmdir: clearBit failed.\n");
+                    free(dir);
+                    return -1;
+                }
+            }
+            // Reset DE values at ppi.parent[ppi.lei]
+            ppi.parent[ppi.lei].LBAlocation = -1; // DEs where i >=2 have starting locations of directories/files
+            ppi.parent[ppi.lei].size = -1;
+            for (int i = 0; i < NAME + 1; i++)
+            {
+                ppi.parent[ppi.lei].name[i] = '\0';
+            }
+            ppi.parent[ppi.lei].timeCreation = (time_t)(-1);
+            ppi.parent[ppi.lei].lastAccessed = (time_t)(-1);
+            ppi.parent[ppi.lei].lastModified = (time_t)(-1);
+            ppi.parent[ppi.lei].isDirectory = -1;
+            ppi.parent[ppi.lei].dirNumBlocks = -1;
+            int writeRet2 = LBAwrite(ppi.parent, ppi.parent[0].dirNumBlocks, ppi.parent[0].LBAlocation);
+            if (writeRet2 == ppi.parent[0].dirNumBlocks)
+            {
+                free(dir);
+                return 0;
+            }
+            else
+            {
+                fprintf(stderr, "fs_rmdir: updating parent to disk failed.\n");
+            }
+        }
+        else
+        {
+            fprintf(stderr, "fs_rmdir: LBAwrite failed.\n");
+            free(dir);
+            return -1;
+        }
     }
-
 }
