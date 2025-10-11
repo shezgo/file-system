@@ -35,12 +35,11 @@ int findNameInDir(DE *parent, char *name)
         return -1;
     }
     int numEntries = parent[0].size / sizeof(DE);
-    
-    
+
     printf("findNameInDir: sizeof(DE):%ld\n", sizeof(DE));
     printf("findNameInDir: parent[0].size:%ld\n", parent[0].size);
     printf("findNameInDir: numEntries:%d\n", numEntries);
-    
+
     for (int i = 0; i < numEntries; i++)
     {
         printf("findNameInDir: parent[%d].name:%s\n", i, parent[i].name);
@@ -194,7 +193,7 @@ int parsePath(char *path, ppinfo *ppi)
     {
         ppi->le = token1;
 
-        //if findNameInDir can't find token1, it returns -1 to ppi->lei.
+        // if findNameInDir can't find token1, it returns -1 to ppi->lei.
         ppi->lei = findNameInDir(parent, token1);
         printf("pp debug - ppi->lei:%d\n", ppi->lei);
         token2 = strtok_r(NULL, "/", &saveptr);
@@ -209,8 +208,8 @@ int parsePath(char *path, ppinfo *ppi)
             printf("pp debug2 print token1:%s, ppi->le:%s\n", token1, ppi->le);
             return (0);
         }
-        
-        //This triggers if at any point in the path, an element doesn't exist
+
+        // This triggers if at any point in the path, an element doesn't exist
         if (ppi->lei < 0) // the name doesn’t exist, invalid path
         {
             printf("pp debug 1\n");
@@ -246,7 +245,6 @@ int parsePath(char *path, ppinfo *ppi)
     // If the index was valid but not a directory, exit.
     // If it was, then valid!
 }
-
 
 //*************************************************************************************************
 // End helper functions
@@ -294,7 +292,6 @@ int fs_mkdir(const char *path, mode_t mode)
     }
 
     DE *newDir = initDir(MAX_ENTRIES, ppi.parent, x, ppi.le, bm);
-    
 
     if (newDir == NULL)
     {
@@ -302,18 +299,18 @@ int fs_mkdir(const char *path, mode_t mode)
         return -1;
     }
 
-/*
-    printf("ppi.parent time creation:%ld\n", ppi.parent->timeCreation);
-    memcpy(&(ppi.parent[x]), newDir, sizeof(DE)); // this is supposed to set newDir to ppi.parent[x].
-    // then ppi.le is supposed to be the name...but ppi.le might not be correct.
-    printf("from fs_mkdir ppi.le:%s\n", ppi.le);
-    strncpy(ppi.parent[x].name, ppi.le, sizeof(ppi.parent[x].name) - 1);
-    ppi.parent[x].name[sizeof(ppi.parent[x].name) - 1] = '\0';
-    printf("from fs_mkdir ppi.parent[x].name:%s\n", ppi.parent[x].name);
+    /*
+        printf("ppi.parent time creation:%ld\n", ppi.parent->timeCreation);
+        memcpy(&(ppi.parent[x]), newDir, sizeof(DE)); // this is supposed to set newDir to ppi.parent[x].
+        // then ppi.le is supposed to be the name...but ppi.le might not be correct.
+        printf("from fs_mkdir ppi.le:%s\n", ppi.le);
+        strncpy(ppi.parent[x].name, ppi.le, sizeof(ppi.parent[x].name) - 1);
+        ppi.parent[x].name[sizeof(ppi.parent[x].name) - 1] = '\0';
+        printf("from fs_mkdir ppi.parent[x].name:%s\n", ppi.parent[x].name);
 
-    
-    int uDRet = updateDELBA(newDir);
-    */
+
+        int uDRet = updateDELBA(newDir);
+        */
     freeIfNotNeedDir(newDir);
 
     return 0;
@@ -625,6 +622,7 @@ int fs_delete(char *filename)
         -set all blocks for the filesize to 0
     2. clearBit in bitmap to mark the newly freed blocks
     3. "delete the DE" at curdir[fileIndex] by resetting to default values for each DE in initDir.
+    3.5 rewrite curdir to disk
     4. return 0 if success
 
     If the filename doesn't exist in curdir:
@@ -632,46 +630,88 @@ int fs_delete(char *filename)
     2. return -1
     */
 
-   int x = findNameInDir(cwdGlobal, filename);
-   if(x == -1){
-    fprintf("File not found in current directory.\n");
-    return -1;
-   }
-   else if (x > 1){
-    //Calculate how many blocks the file takes up.
-   int numBlocks = (cwdGlobal[x].size + vcb->block_size - 1)/ vcb->block_size;
-   char * emptyFile = (char *)malloc(numBlocks * vcb->block_size);
-   int writeReturn = LBAwrite(emptyFile, numBlocks, cwdGlobal[x].LBAlocation);
-   if (writeReturn == numBlocks){
-    for(int i = cwdGlobal->LBAlocation; i < cwdGlobal->LBAlocation + numBlocks; i++)
+    int x = findNameInDir(cwdGlobal, filename);
+    if (x == -1)
     {
-        int clearReturn = clearBit(bm->bitmap,i);
-        if (clearReturn == -1){
-            fprintf("fs_delete: clearBit failed.\n");
+        fprintf("File not found in current directory.\n");
+        return -1;
+    }
+    else if (x > 1)
+    {
+        // Calculate how many blocks the file takes up.
+        int numBlocks = (cwdGlobal[x].size + vcb->block_size - 1) / vcb->block_size;
+        char *emptyFile = (char *)malloc(numBlocks * vcb->block_size);
+        int writeReturn = LBAwrite(emptyFile, numBlocks, cwdGlobal[x].LBAlocation);
+        if (writeReturn == numBlocks)
+        {
+            for (int i = cwdGlobal->LBAlocation; i < cwdGlobal->LBAlocation + numBlocks; i++)
+            {
+                int clearReturn = clearBit(bm->bitmap, i);
+                if (clearReturn == -1)
+                {
+                    fprintf(stderr, "fs_delete: clearBit failed.\n");
+                    return -1;
+                }
+            }
+            cwdGlobal[x].LBAlocation = -1; // DEs where i >=2 have starting locations of directories/files
+            cwdGlobal[x].size = -1;
+            for (int i = 0; i < NAME + 1; i++)
+            {
+                cwdGlobal[x].name[i] = '\0';
+            }
+            cwdGlobal[x].timeCreation = (time_t)(-1);
+            cwdGlobal[x].lastAccessed = (time_t)(-1);
+            cwdGlobal[x].lastModified = (time_t)(-1);
+            cwdGlobal[x].isDirectory = -1;
+            cwdGlobal[x].dirNumBlocks = -1;
+
+            int writeReturn2 = LBAwrite(cwdGlobal, cwdGlobal[0].dirNumBlocks, cwdGlobal[0].LBAlocation);
+            if (writeReturn2 == cwdGlobal[0].dirNumBlocks)
+            {
+                return 0;
+            }
+            else
+            {
+                fprintf(stderr, "fs_delete: updating cwd to disk failed.\n");
+            }
+        }
+        else
+        {
+            fprintf(stderr, "Invalid return value from findNameInDir\n");
             return -1;
         }
     }
-        cwdGlobal[x].LBAlocation = -1; // DEs where i >=2 have starting locations of directories/files
-        cwdGlobal[x].size = -1;
-        for (int i = 0; i < NAME + 1; i++)
-        {
-            cwdGlobal[x].name[i] = '\0';
-        }
-        cwdGlobal[x].timeCreation = (time_t)(-1);
-        cwdGlobal[x].lastAccessed = (time_t)(-1);
-        cwdGlobal[x].lastModified = (time_t)(-1);
-        cwdGlobal[x].isDirectory = -1;
-        cwdGlobal[x].dirNumBlocks = -1;
-
-   }
-   }
-   else{
-    fprintf("Invalid return value from findNameInDir\n");
-    return -1;
-   }
 }
-
 int fs_rmdir(const char *pathname)
 {
+    /*
+        Use parsePath on the pathname
+        Case 1: parsePath returns -2, Root case?
+        Case 2: parsePath returns 0 for success and has valid ppi->lei
+        Case 3: returns 0 but invalid ppi->lei, 
+        Case 4: parsePath returns -1 for failure meaning invalid pathname
+    */
+    if (pathname == NULL)
+    {
+        fprintf(stderr, "Path is null\n");
+        return -1;
+    }
+
+    // Create a writable copy of the path
+    char *pathCopy = strdup(pathname);
+    if (pathCopy == NULL)
+    {
+        fprintf(stderr, "Failed to duplicate path\n");
+        return -1;
+    }
+    ppinfo ppi;
+    int parseFlag = parsePath(pathCopy, &ppi);
+    //  If parsePath fails
+    if (parseFlag != 0)
+    {
+        fprintf(stderr, "parsePath failed\n");
+        return (parseFlag);
+    }
+
     return 0;
 }

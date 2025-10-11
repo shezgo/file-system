@@ -19,7 +19,6 @@ uint8_t magicNumber;
 VolumeControlBlock *vcb = NULL; // Global definition, always kept in memory
 DE *rootGlobal = NULL;			// Global definition, always kept in memory
 DE *cwdGlobal = NULL;			// Global definition, always kept in memory
-char *cwdName = NULL;			// Global char* used to track cwd path string
 Bitmap *bm = NULL;				// Global declaration of the freespace bitmap
 uint8_t *bitmap_bm = NULL;		// Actual bitmap array
 int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
@@ -61,17 +60,6 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		printf("fsInit.c line 60: cwdGlobal->name: %s\n", cwdGlobal->name);
 		printf("rootGlobal->name: %s\n", rootGlobal->name);
 		// Initialize a global current working directory name string
-		cwdName = (char *)malloc(CWD_SIZE);
-		if (cwdName == NULL)
-		{
-			fprintf(stderr, "cwdName memory allocation failed\n");
-			return -1;
-		}
-		for (uint32_t i = 0; i < CWD_SIZE; i++)
-		{
-			cwdName[i] = '\0';
-		}
-		strcpy(cwdName, "/");
 		// end init cwdName
 		printf("fsInit.c line 75: cwdName: %s\n", cwdName);
 		return 0;
@@ -87,18 +75,6 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 	for (uint32_t i = 0; i < blockSize; i++)
 	{
 		((char *)vcb)[i] = 0;
-	}
-
-	// Initialize Global pointer to keep track of current working directory
-	cwdName = (char *)malloc(CWD_SIZE);
-	if (cwdName == NULL)
-	{
-		fprintf(stderr, "cwdName memory allocation failed\n");
-		return -1;
-	}
-	for (uint32_t i = 0; i < CWD_SIZE; i++)
-	{
-		cwdName[i] = '\0';
 	}
 
 	printf("Initializing File System with %ld blocks with a block size of %ld\n", numberOfBlocks,
