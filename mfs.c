@@ -695,6 +695,7 @@ int fs_rmdir(const char *pathname)
     IF the directory is not empty then this function will not succeed.
     Use parsePath on the pathname
     Case 1: parsePath returns -2, Root case?
+    print error and return -1
     Case 2: parsePath returns 0 for success and has valid ppi->lei
     Case 3: returns 0 but invalid ppi->lei, 
     Case 4: parsePath returns -1 for failure meaning invalid pathname
@@ -715,7 +716,7 @@ int fs_rmdir(const char *pathname)
     char *pathCopy = strdup(pathname);
     if (pathCopy == NULL)
     {
-        fprintf(stderr, "Failed to duplicate path\n");
+        fprintf(stderr, "Failed to duplicate path.\n");
         return -1;
     }
     ppinfo ppi;
@@ -723,9 +724,41 @@ int fs_rmdir(const char *pathname)
     //  If parsePath fails
     if (parseFlag != 0)
     {
-        fprintf(stderr, "parsePath failed\n");
+        fprintf(stderr, "parsePath failed.\n");
         return (parseFlag);
     }
 
-    return 0;
+    if (parseFlag == -2)
+    {
+        fprintf(stderr, "Cannot delete root.\n");
+        return -1;
+    }
+
+    if (parseFlag == -1)
+    {
+        fprintf(stderr, "parsePath failed.\n");
+    }
+    
+    if (parseFlag == 0)
+    {
+        /*
+        Check if this DE points to a dir or file.
+        the last element in path will be at parent[lei].
+        If it's a file, return error.
+        If it's a directory:
+        -Load the directory into memory (by opening it)
+        -If it has any DEs in any index
+            - print "directory is not empty" error
+            - Free this directory from memory.
+            - Free parent directory from memory
+            - return -1
+        -If it's empty, delete itself and its metadata in its parent.
+            -Write empty buffer to disk at parent[lei].lbalocation
+            -Reset parent[lei].attributes
+            -Rewrite parent to disk at parent[0].lbalocation
+            -Free parent directory
+        */
+
+    }
+
 }
