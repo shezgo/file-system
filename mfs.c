@@ -617,7 +617,8 @@ int fs_delete(char *filename)
     /*
     Searches for the filename (where? from curdir?)
     Check if filename exists in curdir.
-    If so:
+    Check if this filename is a file or directory.
+    If file:
     1. clear the bytes (set to 0) from curdir[fileIndex].LBAlocation to LBAlocation + numBlocks
         -set all blocks for the filesize to 0
     2. clearBit in bitmap to mark the newly freed blocks
@@ -638,6 +639,11 @@ int fs_delete(char *filename)
     }
     else if (x > 1)
     {
+        if(cwdGlobal[x].isDirectory == 1)
+        {
+            fprintf(stderr, "Path is a directory, not file.\n");
+            return -1;
+        }
         // Calculate how many blocks the file takes up.
         int numBlocks = (cwdGlobal[x].size + vcb->block_size - 1) / vcb->block_size;
         char *emptyFile = (char *)malloc(numBlocks * vcb->block_size);
@@ -685,11 +691,19 @@ int fs_delete(char *filename)
 int fs_rmdir(const char *pathname)
 {
     /*
-        Use parsePath on the pathname
-        Case 1: parsePath returns -2, Root case?
-        Case 2: parsePath returns 0 for success and has valid ppi->lei
-        Case 3: returns 0 but invalid ppi->lei, 
-        Case 4: parsePath returns -1 for failure meaning invalid pathname
+    rmdir() removes the directory represented by ‘pathname’ if it is empty. 
+    IF the directory is not empty then this function will not succeed.
+    Use parsePath on the pathname
+    Case 1: parsePath returns -2, Root case?
+    Case 2: parsePath returns 0 for success and has valid ppi->lei
+    Case 3: returns 0 but invalid ppi->lei, 
+    Case 4: parsePath returns -1 for failure meaning invalid pathname
+
+    If parsePath succeeds:
+    check if the directory is empty. If so, 
+    delete the directory and its metadata in parent.
+
+    If the directory is not empty, error message.
     */
     if (pathname == NULL)
     {
