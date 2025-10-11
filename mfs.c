@@ -621,7 +621,7 @@ int fs_delete(char *filename)
     Searches for the filename (where? from curdir?)
     Check if filename exists in curdir.
     If so:
-    1. clear the bytes (set to 0) from curdir[fileIndex].LBAlocation to LBAlocation + size, or entire blocks?
+    1. clear the bytes (set to 0) from curdir[fileIndex].LBAlocation to LBAlocation + numBlocks
         -set all blocks for the filesize to 0
     2. clearBit in bitmap to mark the newly freed blocks
     3. "delete the DE" at curdir[fileIndex] by resetting to default values for each DE in initDir.
@@ -643,7 +643,7 @@ int fs_delete(char *filename)
    char * emptyFile = (char *)malloc(numBlocks * vcb->block_size);
    int writeReturn = LBAwrite(emptyFile, numBlocks, cwdGlobal[x].LBAlocation);
    if (writeReturn == numBlocks){
-    for(int i = cwdGlobal->LBAlocation; i < cwdGlobal->LBAindex + numBlocks; i++)
+    for(int i = cwdGlobal->LBAlocation; i < cwdGlobal->LBAlocation + numBlocks; i++)
     {
         int clearReturn = clearBit(bm->bitmap,i);
         if (clearReturn == -1){
@@ -662,6 +662,7 @@ int fs_delete(char *filename)
         cwdGlobal[x].lastModified = (time_t)(-1);
         cwdGlobal[x].isDirectory = -1;
         cwdGlobal[x].dirNumBlocks = -1;
+
    }
    }
    else{
