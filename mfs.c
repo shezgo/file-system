@@ -156,7 +156,6 @@ int parsePath(char *path, ppinfo *ppi)
         if (rootGlobal != NULL)
         {
             start = rootGlobal;
-            strcpy(cwdName, "/");
         }
         else
         {
@@ -486,8 +485,6 @@ int fs_setcwd(char *pathname)
     if (fs_isDir(pathname) == 1)
     {
         cwdGlobal = &(ppi.parent[ppi.lei]);
-        strcpy(cwdName, pathname);
-        cwdName[strlen(cwdName)] = '\0';
         return 0;
     }
 }
@@ -518,14 +515,15 @@ char *fs_getcwd(char *pathname, size_t size)
         return NULL;
     }
 
-    if (size <= strlen(cwdName))
+    if (size <= strlen(cwdGlobal[0].name))
     {
         fprintf(stderr, "Buffer size is too small");
         return NULL;
     }
-    if (isNullTerminated(cwdName, size) == 1)
+    if (isNullTerminated(cwdGlobal[0].name, size) == 1)
     {
-        strncpy(pathname, cwdName, size - 1);
+        //DEBUG: Nope, fix the below. pathname should be absolute path.
+        strncpy(pathname, cwdGlobal[0].name, size - 1);
         pathname[size - 1] = '\0'; // Ensure null termination
         return pathname;
     }
@@ -634,7 +632,7 @@ int fs_delete(char *filename)
     int x = findNameInDir(cwdGlobal, filename);
     if (x == -1)
     {
-        fprintf("File not found in current directory.\n");
+        fprintf(stderr, "File not found in current directory.\n");
         return -1;
     }
     else if (x > 1)
@@ -652,7 +650,7 @@ int fs_delete(char *filename)
         {
             for (int i = cwdGlobal->LBAlocation; i < cwdGlobal->LBAlocation + numBlocks; i++)
             {
-                int clearReturn = clearBit(bm->bitmap, i);
+                int clearReturn = clearBit(bm, i);
                 if (clearReturn == -1)
                 {
                     fprintf(stderr, "fs_delete: clearBit failed.\n");
@@ -789,7 +787,7 @@ int fs_rmdir(const char *pathname)
         {
             for (int i = dir[0].LBAlocation; i < dir[0].LBAlocation + dir[0].dirNumBlocks; i++)
             {
-                int clearReturn = clearBit(bm->bitmap, i);
+                int clearReturn = clearBit(bm, i);
                 if (clearReturn == -1)
                 {
                     fprintf(stderr, "fs_rmdir: clearBit failed.\n");
