@@ -142,13 +142,21 @@ Return values of this function:
 3. char * lastElement is the name of the last element in the path
 4. int lastElementIndex - which entry is it inside the parent? -1 if does not exist
 */
-int parsePath(char *path, ppinfo *ppi)
+int parsePath(char *passedPath, ppinfo *ppi)
 {
-    if (path == NULL)
+    if (passedPath == NULL)
     {
         fprintf(stderr, "Path is null\n");
         return 1;
     }
+    char *path = strdup(passedPath); // duplicates string, allocates memory
+
+    if (path == NULL)
+    {
+        perror("strdup failed");
+        return 1;
+    }
+
     DE *start;
 
     if (path[0] == '/')
@@ -177,7 +185,7 @@ int parsePath(char *path, ppinfo *ppi)
     // Special case: If the only token is /, then it’ll return null
     if (token1 == NULL)
     {
-        if (path[0] != '/')
+        if (path[0] != '/') // ensure the path is not root
         {
             return -1; // Invalid path
         }
@@ -522,7 +530,7 @@ char *fs_getcwd(char *pathname, size_t size)
     }
     if (isNullTerminated(cwdGlobal[0].name, size) == 1)
     {
-        //DEBUG: Nope, fix the below. pathname should be absolute path.
+        // DEBUG: Nope, fix the below. pathname should be absolute path.
         strncpy(pathname, cwdGlobal[0].name, size - 1);
         pathname[size - 1] = '\0'; // Ensure null termination
         return pathname;

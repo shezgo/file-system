@@ -103,7 +103,7 @@ int fs_isDir(char * pathname);		//return 1 if directory, 0 otherwise
 int fs_delete(char* filename);	//removes a file
 
 // Helper functions
-int parsePath(char * path, ppinfo * ppi); 
+int parsePath(char * passedPath, ppinfo * ppi); 
 int findNameInDir(DE *parent, char* name); //returns index of DE in parent if found, -1 if not
 int entryIsDir(DE *parent, int deIndex); // Checks if the DE in parent is a directory. 1 if true
 int freeIfNotNeedDir(DE *dir); //Frees a dir only if not cwd, root, or null 

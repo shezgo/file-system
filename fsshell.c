@@ -136,6 +136,7 @@ int displayFiles (fdDir * dirp, int flall, int fllong)
 ****************************************************/
 int cmd_ls (int argcnt, char *argvec[])
 	{
+		printf("cmd_ls: argvec[1]:%s\n", argvec[1]);
 #if (CMDLS_ON == 1)				
 	int option_index;
 	int c;
@@ -207,6 +208,7 @@ int cmd_ls (int argcnt, char *argvec[])
 		//processing arguments after options
 		for (int k = optind; k < argcnt; k++)
 			{
+			printf("2nd cmd_ls: argvec[1]:%s\n", argvec[1]);
 			if (fs_isDir(argvec[k]))
 				{
 				fdDir * dirp;
@@ -413,7 +415,7 @@ int cmd_rm (int argcnt, char *argvec[])
 		}
 		
 	char * path = argvec[1];	
-	
+	printf("cmd_rm: argvec[1]:%s\n", argvec[1]);
 	//must determine if file or directory
 	if (fs_isDir (path))
 		{
