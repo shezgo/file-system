@@ -146,14 +146,20 @@ int parsePath(char *passedPath, ppinfo *ppi)
 {
     if (passedPath == NULL)
     {
-        fprintf(stderr, "Path is null\n");
+        fprintf(stderr, "passedPath is null\n");
         return 1;
     }
-    char *path = strdup(passedPath); // duplicates string, allocates memory
+    char *path = malloc(CWD_SIZE);
+    if (path == NULL)
+    {
+        fprintf(stderr, "path is null\n");
+        return 1;
+    }
+    strcpy(path, passedPath); // duplicates string, allocates memory
 
     if (path == NULL)
     {
-        perror("strdup failed");
+        perror("strcpy failed");
         return 1;
     }
 
@@ -480,6 +486,7 @@ int fs_setcwd(char *pathname)
     if (ppi.lei == -2)
     {
         cwdGlobal = rootGlobal;
+        strcpy(cwdName, "/");
         return 0;
     }
 
@@ -493,6 +500,25 @@ int fs_setcwd(char *pathname)
     if (fs_isDir(pathname) == 1)
     {
         cwdGlobal = &(ppi.parent[ppi.lei]);
+
+       if (pathname[0] == '/'){
+        strcpy(cwdName, pathname);
+        return 0;
+       }
+
+        char *fullPath = malloc(CWD_SIZE);
+        if(fullPath == NULL)
+        {
+            fprintf(stderr, "fullPath malloc failed.\n");
+            return -1;
+        }
+
+        strcpy(fullPath, cwdName);
+        strcat(fullPath, "/");
+        strcat (fullPath, pathname);
+        strcpy(cwdName, fullPath);
+
+        free(fullPath);
         return 0;
     }
 }
