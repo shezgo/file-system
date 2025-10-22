@@ -1,9 +1,9 @@
 /**************************************************************
  * Class::  CSC-415-01 Summer 2024
- * Name:: Shez Rahman, Austin Kuykendall, Robel Ayelew, Awet Fikadu
- * Student IDs:: 916867424, 920222066, 922419937, 922130310
+ * Name:: Shez Rahman
+ * Student IDs:: 916867424
  * GitHub-Name:: shezgo
- * Group-Name:: Spork
+ * Group-Name:: Independent
  * Project:: Basic File System
  *
  * File:: directory_entry.h
