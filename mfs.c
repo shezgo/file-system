@@ -770,8 +770,9 @@ int fs_rmdir(const char *pathname)
 
         for (int i = 2; i < numDEs; i++)
         {
-            if (ppi.parent[i].name[0] != '\0')
+            if (dir[i].name[0] != '\0')
             {
+                printf("dir[%d].name:%s\n", i, dir[i].name);
                 fprintf(stderr, "Directory is not empty - cannot rmdir.\n");
                 free(dir);
                 return -1;
