@@ -549,23 +549,22 @@ char *fs_getcwd(char *pathname, size_t size)
         return NULL;
     }
 
-    if (size <= strlen(cwdGlobal[0].name))
+    if (size < CWD_SIZE)
     {
         fprintf(stderr, "Buffer size is too small");
         return NULL;
     }
-    if (isNullTerminated(cwdGlobal[0].name, size) == 1)
+
+    strncpy(pathname, cwdName, size);
+
+    if(pathname == NULL)
     {
-        // DEBUG: Nope, fix the below. pathname should be absolute path.
-        strncpy(pathname, cwdGlobal[0].name, size - 1);
-        pathname[size - 1] = '\0'; // Ensure null termination
-        return pathname;
-    }
-    else
-    {
-        fprintf(stderr, "Source string is not null-terminated");
+        fprintf(stderr, "fs_getcwd: Null pathname");
         return NULL;
     }
+    
+    return pathname;
+
 }
 
 //*************************************************************************************************

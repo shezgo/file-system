@@ -33,7 +33,7 @@
 #include "bitmap.h"
 
 #define MAX_ENTRIES 29 //29 entries per 5 blocks per directory.
-#define CWD_SIZE 256
+#define CWD_SIZE 4096 //Same value as DIRMAX_LEN in fsshell.c
 #define MAX_DIR_NAME 100
 #define ROOTNUMBLOCKS 5
 
