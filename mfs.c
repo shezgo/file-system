@@ -772,6 +772,7 @@ int fs_rmdir(const char *pathname)
         {
             if (dir[i].name[0] != '\0')
             {
+                printf("ppi.parent[ppi.lei].name: %s\n", ppi.parent[ppi.lei].name);
                 printf("dir[%d].name:%s\n", i, dir[i].name);
                 fprintf(stderr, "Directory is not empty - cannot rmdir.\n");
                 free(dir);
