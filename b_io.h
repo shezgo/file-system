@@ -1,6 +1,5 @@
 /**************************************************************
  * Class::  CSC-415-01 Summer 2024
- * Name:: Shez Rahman, Austin Kuykendall, Robel Ayelew, Awet Fikadu
  * Name:: Shez Rahman
  * Student IDs:: 916867424
  * GitHub-Name:: shezgo
