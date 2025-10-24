@@ -114,6 +114,13 @@ b_io_fd b_open (char * filename, int flags)
 	fcbArray[returnFd].startBlock = ppi.parent[ppi.lei].LBAlocation;
 	fcbArray[returnFd].numBytesRead = 0;
 	fcbArray[returnFd].eof = 0;
+
+	if (fcbArray[returnFd].buf == NULL)
+	{
+		fprintf(stderr, "b_open: Memory allocation failed.\n");
+		b_close(returnFd);
+		return -1;
+	}
 	
 	return (returnFd);						// all set
 	}
