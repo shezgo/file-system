@@ -31,6 +31,11 @@ typedef struct b_fcb
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
 	int flags;		//holds the permissions value for O_RDONLY (0), O_WRONLY (1), O_RDWR (2)
+	int blockTracker;	//holds the current block for tracking which can differ from start block
+	int blockIndex; //holds the index inside the current block for tracking last read value
+	int startBlock;	//holds the starting block of the file
+	int numBytesRead;	//If this int reaches the file size, then end of file is reached.
+	int eof;		// The value is 0 if EOF has not been reached, and is 1 if reached.
 	} b_fcb;
 	
 b_fcb fcbArray[MAXFCBS];
@@ -54,7 +59,7 @@ b_io_fd b_getFCB ()
 	{
 	for (int i = 0; i < MAXFCBS; i++)
 		{
-		if (fcbArray[i].buff == NULL)
+		if (fcbArray[i].buf == NULL)
 			{
 			return i;		//Not thread safe (But do not worry about it for this assignment)
 			}
@@ -67,6 +72,17 @@ b_io_fd b_getFCB ()
 // O_RDONLY (0), O_WRONLY (1), or O_RDWR (2)
 b_io_fd b_open (char * filename, int flags)
 	{
+
+	ppinfo ppi;
+	int parseFlag = parsePath(filename, &ppi);
+
+	//Check that the file exists and is not a directory.
+	if(ppi.parent[ppi.lei].isDirectory)
+	{
+		fprintf(stderr, "b_open: path is a directory\n");
+		return -1;
+	}
+	
 	b_io_fd returnFd;
 
 	//*** TODO ***:  Modify to save or set any information needed
@@ -80,22 +96,24 @@ b_io_fd b_open (char * filename, int flags)
 	if (returnFd == -1)
 	{
 		fprintf(stderr, "Error: fcbArray is already full\n");
+		return -1;
 	}
 
-	/*
-		Find the filename specified... is this an absolute
-		path? relative? 
-		I think parsePath should handle either case ^ and 
-		will give me a ppi, which has the parent, le, and
-		lei. Using this, ppi.parent[ppi.lei].LBAlocation
-		should contain the location of the file.
-		ppi.parent[ppi.lei].size should be the size of the
-		file.
-
-		We'll need to populate all the fcbArray[returnFd]
-		fields with all of this info and more fields we may
-		need for read write and seek.
+	/*DEBUG, should the size of buf be filesize or blocksize?
+	Either reading from file into user's buffer, or writing from
+	user's buffer into file. Buffer should start with filesize I think.
 	*/
+
+	//Allows multiple fcb for the same file, can add mutex locks later.
+	fcbArray[returnFd].buflen = ppi.parent[ppi.lei].size;
+	fcbArray[returnFd].buf = malloc(ppi.parent[ppi.lei].size);//Should this be blocksize instead?
+	fcbArray[returnFd].index = 0;
+	fcbArray[returnFd].flags = flags;
+	fcbArray[returnFd].blockTracker = ppi.parent[ppi.lei].LBAlocation;
+	fcbArray[returnFd].blockIndex = 0;
+	fcbArray[returnFd].startBlock = ppi.parent[ppi.lei].LBAlocation;
+	fcbArray[returnFd].numBytesRead = 0;
+	fcbArray[returnFd].eof = 0;
 	
 	return (returnFd);						// all set
 	}
