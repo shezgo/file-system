@@ -30,6 +30,7 @@ typedef struct b_fcb
 	char * buf;		//holds the open file buffer
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
+	int flags;		//holds the permissions value for O_RDONLY (0), O_WRONLY (1), O_RDWR (2)
 	} b_fcb;
 	
 b_fcb fcbArray[MAXFCBS];
@@ -63,7 +64,7 @@ b_io_fd b_getFCB ()
 	
 // Interface to open a buffered file
 // Modification of interface for this assignment, flags match the Linux flags for open
-// O_RDONLY, O_WRONLY, or O_RDWR
+// O_RDONLY (0), O_WRONLY (1), or O_RDWR (2)
 b_io_fd b_open (char * filename, int flags)
 	{
 	b_io_fd returnFd;
@@ -76,6 +77,25 @@ b_io_fd b_open (char * filename, int flags)
 	
 	returnFd = b_getFCB();				// get our own file descriptor
 										// check for error - all used FCB's
+	if (returnFd == -1)
+	{
+		fprintf(stderr, "Error: fcbArray is already full\n");
+	}
+
+	/*
+		Find the filename specified... is this an absolute
+		path? relative? 
+		I think parsePath should handle either case ^ and 
+		will give me a ppi, which has the parent, le, and
+		lei. Using this, ppi.parent[ppi.lei].LBAlocation
+		should contain the location of the file.
+		ppi.parent[ppi.lei].size should be the size of the
+		file.
+
+		We'll need to populate all the fcbArray[returnFd]
+		fields with all of this info and more fields we may
+		need for read write and seek.
+	*/
 	
 	return (returnFd);						// all set
 	}
