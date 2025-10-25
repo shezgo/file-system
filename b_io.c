@@ -5,17 +5,17 @@
  * GitHub-Name:: shezgo
  * Group-Name:: Independent
  * Project:: Basic File System
-*
-* File:: b_io.c
-*
-* Description:: Basic File System - Key File I/O Operations
-*
-**************************************************************/
+ *
+ * File:: b_io.c
+ *
+ * Description:: Basic File System - Key File I/O Operations
+ *
+ **************************************************************/
 
 #include <stdio.h>
 #include <unistd.h>
-#include <stdlib.h>			// for malloc
-#include <string.h>			// for memcpy
+#include <stdlib.h> // for malloc
+#include <string.h> // for memcpy
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -25,74 +25,78 @@
 #define B_CHUNK_SIZE 512
 
 typedef struct b_fcb
-	{
+{
 	/** TODO add al the information you need in the file control block **/
-	char * buf;		//holds the open file buffer
-	int index;		//holds the current position in the buffer
-	int buflen;		//holds how many valid bytes are in the buffer
-	int flags;		//holds the permissions value for O_RDONLY (0), O_WRONLY (1), O_RDWR (2)
-	int blockTracker;	//holds the current block for tracking which can differ from start block
-	int blockIndex; //holds the index inside the current block for tracking last read value
-	int startBlock;	//holds the starting block of the file
-	int numBytesRead;	//If this int reaches the file size, then end of file is reached.
-	int eof;		// The value is 0 if EOF has not been reached, and is 1 if reached.
-	} b_fcb;
-	
+	char *buf;				 // holds the open file buffer
+	char fileName[NAME + 1]; // holds the name of the file
+	int index;				 // holds the current position in the buffer
+	int buflen;				 // holds how many valid bytes are in the buffer
+	int flags;				 // holds the permissions value for O_RDONLY (0), O_WRONLY (1), O_RDWR (2)
+	int blockTracker;		 // holds the current block for tracking which can differ from start block
+	int bufferTracker;		 // holds the index inside the current block for tracking last read value
+	int startBlock;			 // holds the starting block of the file
+	int numBytesRead;		 // If this int reaches the file size, then end of file is reached.
+	int eof;				 // The value is 0 if EOF has not been reached, and is 1 if reached.
+	int fileSize;			 // The size of the file
+
+} b_fcb;
+
 b_fcb fcbArray[MAXFCBS];
 
-int startup = 0;	//Indicates that this has not been initialized
+int startup = 0; // Indicates that this has not been initialized
 
-//Method to initialize our file system
-void b_init ()
-	{
-	//init fcbArray to all free
+// Method to initialize our file system
+void b_init()
+{
+	// init fcbArray to all free
 	for (int i = 0; i < MAXFCBS; i++)
-		{
-		fcbArray[i].buf = NULL; //indicates a free fcbArray
-		}
-		
+	{
+		fcbArray[i].buf = NULL; // indicates a free fcbArray
+	}
+
 	startup = 1;
-	}
+}
 
-//Method to get a free FCB element
-b_io_fd b_getFCB ()
-	{
+// Method to get a free FCB element
+b_io_fd b_getFCB()
+{
 	for (int i = 0; i < MAXFCBS; i++)
-		{
+	{
 		if (fcbArray[i].buf == NULL)
-			{
-			return i;		//Not thread safe (But do not worry about it for this assignment)
-			}
+		{
+			return i; // Not thread safe (But do not worry about it for this assignment)
 		}
-	return (-1);  //all in use
 	}
-	
+	return (-1); // all in use
+}
+
 // Interface to open a buffered file
 // Modification of interface for this assignment, flags match the Linux flags for open
 // O_RDONLY (0), O_WRONLY (1), or O_RDWR (2)
-b_io_fd b_open (char * filename, int flags)
-	{
+b_io_fd b_open(char *filename, int flags)
+{
 
 	ppinfo ppi;
 	int parseFlag = parsePath(filename, &ppi);
 
-	//Check that the file exists and is not a directory.
-	if(ppi.parent[ppi.lei].isDirectory)
+	// Check that the file exists and is not a directory.
+	if (ppi.parent[ppi.lei].isDirectory)
 	{
 		fprintf(stderr, "b_open: path is a directory\n");
 		return -1;
 	}
-	
+
 	b_io_fd returnFd;
 
 	//*** TODO ***:  Modify to save or set any information needed
 	//
 	//
-		
-	if (startup == 0) b_init();  //Initialize our system
-	
-	returnFd = b_getFCB();				// get our own file descriptor
-										// check for error - all used FCB's
+
+	if (startup == 0)
+		b_init(); // Initialize our system
+
+	returnFd = b_getFCB(); // get our own file descriptor
+						   // check for error - all used FCB's
 	if (returnFd == -1)
 	{
 		fprintf(stderr, "Error: fcbArray is already full\n");
@@ -104,16 +108,18 @@ b_io_fd b_open (char * filename, int flags)
 	user's buffer into file. Buffer should start with filesize I think.
 	*/
 
-	//Allows multiple fcb for the same file, can add mutex locks later.
+	// Allows multiple fcb for the same file, can add mutex locks later.
+	strcpy(fcbArray[returnFd].fileName, ppi.parent[ppi.lei].name);
 	fcbArray[returnFd].buflen = ppi.parent[ppi.lei].size;
-	fcbArray[returnFd].buf = malloc(ppi.parent[ppi.lei].size);//Should this be blocksize instead?
+	fcbArray[returnFd].buf = malloc(vcb->block_size);
 	fcbArray[returnFd].index = 0;
 	fcbArray[returnFd].flags = flags;
 	fcbArray[returnFd].blockTracker = ppi.parent[ppi.lei].LBAlocation;
-	fcbArray[returnFd].blockIndex = 0;
+	fcbArray[returnFd].bufferTracker = 0;
 	fcbArray[returnFd].startBlock = ppi.parent[ppi.lei].LBAlocation;
 	fcbArray[returnFd].numBytesRead = 0;
 	fcbArray[returnFd].eof = 0;
+	fcbArray[returnFd].fileSize = ppi.parent[ppi.lei].size;
 
 	if (fcbArray[returnFd].buf == NULL)
 	{
@@ -121,44 +127,39 @@ b_io_fd b_open (char * filename, int flags)
 		b_close(returnFd);
 		return -1;
 	}
-	
-	return (returnFd);						// all set
-	}
 
+	return (returnFd); // all set
+}
 
-// Interface to seek function	
-int b_seek (b_io_fd fd, off_t offset, int whence)
-	{
-	if (startup == 0) b_init();  //Initialize our system
-
-	// check that fd is between 0 and (MAXFCBS-1)
-	if ((fd < 0) || (fd >= MAXFCBS))
-		{
-		return (-1); 					//invalid file descriptor
-		}
-		
-		
-	return (0); //Change this
-	}
-
-
-
-// Interface to write function	
-int b_write (b_io_fd fd, char * buffer, int count)
-	{
-	if (startup == 0) b_init();  //Initialize our system
+// Interface to seek function
+int b_seek(b_io_fd fd, off_t offset, int whence)
+{
+	if (startup == 0)
+		b_init(); // Initialize our system
 
 	// check that fd is between 0 and (MAXFCBS-1)
 	if ((fd < 0) || (fd >= MAXFCBS))
-		{
-		return (-1); 					//invalid file descriptor
-		}
-		
-		
-	return (0); //Change this
+	{
+		return (-1); // invalid file descriptor
 	}
 
+	return (0); // Change this
+}
 
+// Interface to write function
+int b_write(b_io_fd fd, char *buffer, int count)
+{
+	if (startup == 0)
+		b_init(); // Initialize our system
+
+	// check that fd is between 0 and (MAXFCBS-1)
+	if ((fd < 0) || (fd >= MAXFCBS))
+	{
+		return (-1); // invalid file descriptor
+	}
+
+	return (0); // Change this
+}
 
 // Interface to read a buffer
 
@@ -168,7 +169,7 @@ int b_write (b_io_fd fd, char * buffer, int count)
 //        size chunks needed to fill the callers request.  This represents the number of
 //        bytes in multiples of the blocksize.
 // Part 3 is a value less than blocksize which is what remains to copy to the callers buffer
-//        after fulfilling part 1 and part 2.  This would always be filled from a refill 
+//        after fulfilling part 1 and part 2.  This would always be filled from a refill
 //        of our buffer.
 //  +-------------+------------------------------------------------+--------+
 //  |             |                                                |        |
@@ -179,22 +180,132 @@ int b_write (b_io_fd fd, char * buffer, int count)
 //  |             |                                                |        |
 //  | Part1       |  Part 2                                        | Part3  |
 //  +-------------+------------------------------------------------+--------+
-int b_read (b_io_fd fd, char * buffer, int count)
-	{
+int b_read(b_io_fd fd, char *buffer, int count)
+{
 
-	if (startup == 0) b_init();  //Initialize our system
+	if (startup == 0)
+		b_init(); // Initialize our system
 
 	// check that fd is between 0 and (MAXFCBS-1)
 	if ((fd < 0) || (fd >= MAXFCBS))
-		{
-		return (-1); 					//invalid file descriptor
-		}
-		
-	return (0);	//Change this
-	}
-	
-// Interface to Close the file	
-int b_close (b_io_fd fd)
 	{
-
+		return (-1); // invalid file descriptor
 	}
+
+	if (fcbArray[fd].buf == NULL) // File not open for this descriptor
+	{
+		return -1;
+	}
+
+	// Check if the end of file will be reached with this call, trim readCount if needed.
+	int readCount = count;
+	if ((fcbArray[fd].numBytesRead + readCount) >= fcbArray[fd].fileSize)
+	{
+		readCount = fcbArray[fd].fileSize - fcbArray[fd].numBytesRead;
+		fcbArray[fd].eof = 1;
+		if (readCount == 0)
+		{
+			printf("End of file reached - nothing to read.\n");
+			return 0; // 0 bytes copied into user's buffer
+		}
+	}
+
+	// If user has partially read a file and the amount they're requesting now doesn't require
+	// reading in a new block, or if only one block needs to be LBAread.
+	if (readCount <= (vcb->block_size - fcbArray[fd].bufferTracker))
+	{
+		// If there's nothing in the fcb buffer, read a new block into the fcb buffer
+		if (fcbArray[fd].bufferTracker == 0)
+		{
+			LBAread(fcbArray[fd].buf, 1, fcbArray[fd].blockTracker);
+			fcbArray[fd].blockTracker += 1;
+		}
+
+		// Read count bytes from fcb buffer into user's buffer and update the buffer tracker
+		memcpy(buffer, fcbArray[fd].buf + fcbArray[fd].bufferTracker, readCount);
+		fcbArray[fd].bufferTracker += readCount; // this should always be < block size.
+		fcbArray[fd].numBytesRead += readCount;
+
+		// If bufferTracker has stepped through the whole block, set it to 0 to reset the tracker.
+		if (fcbArray[fd].bufferTracker == vcb->block_size)
+		{
+			fcbArray[fd].bufferTracker = 0;
+		}
+	}
+
+	else
+	{
+		// If there is data in the buffer that I can read to user's buffer first
+		if (fcbArray[fd].bufferTracker != 0)
+		{
+			int firstRead = vcb->block_size - fcbArray[fd].bufferTracker;
+			memcpy(buffer, fcbArray[fd].buf + fcbArray[fd].bufferTracker, firstRead);
+			buffer += firstRead;
+			fcbArray[fd].numBytesRead += firstRead;
+			readCount -= firstRead;
+			fcbArray[fd].bufferTracker = 0;
+			fcbArray[fd].blockTracker += 1;
+		}
+
+		// Calculate how many blocks to LBAread
+		int numBlocks = readCount / vcb->block_size;
+		if (numBlocks > 0)
+		{
+			// If you can just read numBlocks whole blocks directly from file to user's buffer
+			// without remaining bytes
+			if (numBlocks * vcb->block_size == readCount)
+			{
+				LBAread(buffer, numBlocks, fcbArray[fd].blockTracker);
+				fcbArray[fd].blockTracker += numBlocks;
+				fcbArray[fd].numBytesRead += (numBlocks * vcb->block_size);
+				// but when does eof get triggered here?
+				if (fcbArray[fd].eof == 1)
+				{
+					printf("End of file reached.\n");
+					return 0;
+				}
+				else
+				{
+					return readCount;
+				}
+			}
+		}
+
+		// If there's a small amount of bytes left to read
+		else if (numBlocks == 0 && readCount > 0)
+		{
+			LBAread(fcbArray[fd].buf, 1, fcbArray[fd].blockTracker);
+			fcbArray[fd].blockTracker += 1;
+
+			memcpy(buffer, fcbArray[fd].buf, readCount);
+			fcbArray[fd].bufferTracker = readCount;
+			fcbArray[fd].numBytesRead += readCount;
+
+			if (fcbArray[fd].eof == 1)
+			{
+				printf("End of file reached.\n");
+				return readCount;
+			}
+			else
+			{
+				return readCount;
+			}
+		}
+	}
+
+	if (fcbArray[fd].eof == 1)
+	{
+		printf("End of file reached.\n");
+		return 0;
+	}
+	else
+	{
+		return readCount;
+	}
+
+}
+
+// Interface to Close the file
+int b_close(b_io_fd fd)
+{
+}

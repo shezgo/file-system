@@ -16,6 +16,7 @@
 #define _B_IO_H
 #include <fcntl.h>
 #include "mfs.h"
+#include "volume_control_block.h"
 
 typedef int b_io_fd;
 
