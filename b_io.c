@@ -182,6 +182,11 @@ int b_write(b_io_fd fd, char *buffer, int count)
 //  +-------------+------------------------------------------------+--------+
 int b_read(b_io_fd fd, char *buffer, int count)
 {
+	if (fcbArray[fd].flags == 1)
+	{
+		printf("Read access not granted.\n");
+		return 0;
+	}
 
 	if (startup == 0)
 		b_init(); // Initialize our system
