@@ -161,7 +161,6 @@ When using this, use parsePath(char * path, &ppi)
 Return values of this function:
 1. (int) 0 for Success, -1 for error - check if each index before le is a valid directory
 Returns -2 for root
-Returns -3 if path resolves to an existing file
 ^This is the true return value for parsePath. The rest will be in struct ppinfo.
 2.  DE * parentPointer to parent loaded in memory
 3. char * lastElement is the name of the last element in the path

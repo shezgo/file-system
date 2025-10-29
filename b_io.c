@@ -87,16 +87,58 @@ what's my current case? If the file exists.
 
 what if b_open somehow edited the path for parsePath to process by trimming it?
 
-Check if the full path is a file with parsePath
-If so, create the fcb in fcbArray and return the fd (index) of it.
+Check if the full path is a directory. - done
+- If so, return not a file error.
+Check if the full path is an existing file with parsePath - done
+- If so, create the fcb in fcbArray and return the fd (index) of it.
 
-if not,
-If path is relative, resolve to absolute path first with cwdName.
-Take the full path and trim off the last element - store this in trimmedPath
-Pass trimmedPath into parsePath.
+If neither of the above, check if the path until 2nd to last element is a valid directory:
+Pass a trimmed path into parsePath. No handling for absolute/relative needed here.
+	How:
+	char *pathCopy = malloc(CWD_SIZE);
+	if (path == NULL)
+	{
+		fprintf(stderr, "path is null\n");
+		return -1;
+	}
+	strcpy(pathCopy, filename);
+
+	if (pathCopy == NULL)
+	{
+		perror("strcpy failed");
+		return -1;
+	}
+
+	char *saveptr;
+	char *token1 = strtok_r(pathCopy, '/', &saveptr);
+	
+	char *token2;
+
+start do loop.
+	Will it ever just be one token? Yes, in this case, create the file in cwd.
+	
+	Otherwise, loop through. Keep pulling token2 from strtok_r.
+	If token2 is NOT NULL:
+		We add '/' and token1 to our new path with strcat.
+		Keep looping.
+	If token2 is NULL:
+		we do NOT add token1 to our new path - token1 will be the filename.
+		exit the loop
+	Call parsePath on the newPath.
+	if path is a valid directory, create a new file with token1 filename
+	in the dir, save in its parent DE. 
+	Create the file itself - what does this entail? Clearing bytes? etc.
+
+
 If this path is valid and is a directory, create the new file.
 Else, return an error.
 	*/
+
+	if (filename == NULL)
+	{
+		fprintf(stderr, "path is null\n");
+		return -1;
+	}
 
 	ppinfo ppi;
 	int parseFlag = parsePath(filename, &ppi);
@@ -130,6 +172,12 @@ Else, return an error.
 	user's buffer into file. Buffer should start with filesize I think.
 	*/
 
+	if (ppi.parent[ppi.lei].isDirectory)
+	{
+		fprintf(stderr, "Path is not a file.\n");
+		return -1;
+	}
+
 	if (ppi.isFile)
 	{
 		// Allows multiple fcb for the same file, can add mutex locks later.
@@ -151,6 +199,70 @@ Else, return an error.
 			b_close(returnFd);
 			return -1;
 		}
+		return (returnFd);
+	}
+
+	char *pathCopy = malloc(CWD_SIZE);
+
+	strcpy(pathCopy, filename);
+
+	if (pathCopy == NULL)
+	{
+		perror("strcpy failed");
+		return -1;
+	}
+
+	char *saveptr;
+	char *token1 = strtok_r(pathCopy, '/', &saveptr);
+	
+	char *token2;
+	int cwdFlag = 0;
+	char *newPath = malloc(CWD_SIZE);
+	if(newPath == NULL)
+	{
+		fprintf(stderr, "b_open: newPath malloc failure.\n");
+		return -1;
+	}
+
+	do 
+	{
+		token2 = strtok_r(NULL, '/', &saveptr);
+		cwdFlag++;
+		if( cwdFlag == 1 && token2 == NULL)
+		{
+			/*
+			token1 will be the new name of a file created in cwd
+			create fcb for fcbArray
+			free newPath
+			return the fd
+			*/
+		}
+
+		if(token2 != NULL)
+		{
+			//Add '/' and token1 to newPath
+			strcat(newPath, "/");
+			strcat(newPath, token2);
+			token1 = token2;
+		}
+	} while (token2 != NULL);
+
+	/*
+	If the code has made it here, newPath should be built.
+	pass newPath into parsePath. If valid dir, create new
+	file with token1 as name in newPath as parent.
+	*/
+
+	ppinfo ppi2;
+	int ppRet = parsePath(newPath, &ppi2);
+	if(ppRet != -1)
+	{
+		/*
+			ppi2.parent[ppi2.lei] IS the parent
+			Create a file in this parent. Will be similar
+			to md? maybe a helper method?
+		*/
+
 	}
 
 	return (returnFd); // all set
