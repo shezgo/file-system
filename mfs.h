@@ -84,6 +84,7 @@ typedef struct ppinfo
 	DE * parent; //Pointer to a parent directory array of DEs for the caller of parsePath
 	char * le; //last element for parsePath
 	int lei; //last element index for parsePath - used to access the actual DE as parent[lei]
+	int isFile; //Is 1 if parent[lei] is a file.
 }ppinfo;
 
 // Key directory functions

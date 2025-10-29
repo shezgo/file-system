@@ -58,9 +58,32 @@ int entryIsDir(DE *parent, int deIndex)
     if (parent == NULL)
     {
         fprintf(stderr, "Parent is null\n");
+        return 0;
     }
+
     if (parent[deIndex].isDirectory == 1)
     {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+//*************************************************************************************************
+// Checks if the DE in parent is a file. 1 if true, 0 if false.
+int entryIsFile(DE *parent, int deIndex)
+{
+    if (parent == NULL)
+    {
+        fprintf(stderr, "Parent is null\n");
+        return 0;
+    }
+
+    if (parent[deIndex].isDirectory == 0 && parent[deIndex].name[0] != '\0')
+    {
+        printf("Entry is a file.\n");
         return 1;
     }
     else
@@ -136,7 +159,9 @@ int saveDir(DE *directory)
 parsePath loads the parent in a path and finds if the file (last element) exists or not.
 When using this, use parsePath(char * path, &ppi)
 Return values of this function:
-1. (int) 0 for Success or 1 for error - check if each index before le is a valid directory
+1. (int) 0 for Success, -1 for error - check if each index before le is a valid directory
+Returns -2 for root
+Returns -3 if path resolves to an existing file
 ^This is the true return value for parsePath. The rest will be in struct ppinfo.
 2.  DE * parentPointer to parent loaded in memory
 3. char * lastElement is the name of the last element in the path
@@ -147,20 +172,20 @@ int parsePath(char *passedPath, ppinfo *ppi)
     if (passedPath == NULL)
     {
         fprintf(stderr, "passedPath is null\n");
-        return 1;
+        return -1;
     }
     char *path = malloc(CWD_SIZE);
     if (path == NULL)
     {
         fprintf(stderr, "path is null\n");
-        return 1;
+        return -1;
     }
     strcpy(path, passedPath); // duplicates string, allocates memory
 
     if (path == NULL)
     {
         perror("strcpy failed");
-        return 1;
+        return -1;
     }
 
     DE *start;
@@ -185,6 +210,7 @@ int parsePath(char *passedPath, ppinfo *ppi)
     }
 
     DE *parent = start;
+    ppi->isFile = 0;
 
     char *saveptr;
     char *token1 = strtok_r(path, "/", &saveptr);
@@ -231,11 +257,18 @@ int parsePath(char *passedPath, ppinfo *ppi)
         }
 
         // Helper function EntryisDir - if parent[ppi->lei] is NOT a directory, error?
-        if (entryIsDir(parent, ppi->lei) == 0)
+        if (entryIsDir(parent, ppi->lei) == 0 && entryIsFile(parent, ppi->lei) != 1)
         {
             printf("pp debug 2\n");
             fprintf(stderr, "mfs.c:parsePath: parent[ppi->lei] is not a directory. \n");
             return -1;
+        }
+
+        if (entryIsFile(parent, ppi->lei) == 1)
+        {
+            fprintf(stderr, "mfs.c:parsePath: parent[ppi->lei] is a file.\n");
+            ppi->isFile = 1;
+            return -1; // Unique return value to say path leads to an existing file.
         }
         // Now we know token 1 does exist, is valid, and is a directory. So we want to load it/get
         // that dir parsePath
@@ -501,13 +534,14 @@ int fs_setcwd(char *pathname)
     {
         cwdGlobal = &(ppi.parent[ppi.lei]);
 
-       if (pathname[0] == '/'){
-        strcpy(cwdName, pathname);
-        return 0;
-       }
+        if (pathname[0] == '/')
+        {
+            strcpy(cwdName, pathname);
+            return 0;
+        }
 
         char *fullPath = malloc(CWD_SIZE);
-        if(fullPath == NULL)
+        if (fullPath == NULL)
         {
             fprintf(stderr, "fullPath malloc failed.\n");
             return -1;
@@ -515,7 +549,7 @@ int fs_setcwd(char *pathname)
 
         strcpy(fullPath, cwdName);
         strcat(fullPath, "/");
-        strcat (fullPath, pathname);
+        strcat(fullPath, pathname);
         strcpy(cwdName, fullPath);
 
         free(fullPath);
@@ -557,14 +591,13 @@ char *fs_getcwd(char *pathname, size_t size)
 
     strncpy(pathname, cwdName, size);
 
-    if(pathname == NULL)
+    if (pathname == NULL)
     {
         fprintf(stderr, "fs_getcwd: Null pathname");
         return NULL;
     }
-    
-    return pathname;
 
+    return pathname;
 }
 
 //*************************************************************************************************

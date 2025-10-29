@@ -75,14 +75,36 @@ b_io_fd b_getFCB()
 // O_RDONLY (0), O_WRONLY (1), or O_RDWR (2)
 b_io_fd b_open(char *filename, int flags)
 {
+	/*
+	 add a field to ppinfo - isFile
+
+So, in b_open, what cases do I need?
+1. If path is an existing file - done
+2. If path is a valid pathname up until the 2nd to last element, which does not exist and will be the name for the new file created by touch.
+3. If path is not a valid pathname up until the last element, or up until the second to last element?? clarify.
+
+what's my current case? If the file exists.
+
+what if b_open somehow edited the path for parsePath to process by trimming it?
+
+Check if the full path is a file with parsePath
+If so, create the fcb in fcbArray and return the fd (index) of it.
+
+if not,
+If path is relative, resolve to absolute path first with cwdName.
+Take the full path and trim off the last element - store this in trimmedPath
+Pass trimmedPath into parsePath.
+If this path is valid and is a directory, create the new file.
+Else, return an error.
+	*/
 
 	ppinfo ppi;
 	int parseFlag = parsePath(filename, &ppi);
 
 	// Check that the file exists and is not a directory.
-	if (ppi.parent[ppi.lei].isDirectory)
+	if (ppi.parent[ppi.lei].isDirectory || parseFlag == -1)
 	{
-		fprintf(stderr, "b_open: path is a directory\n");
+		fprintf(stderr, "b_open: parsePath failed or path is a directory\n");
 		return -1;
 	}
 
@@ -108,24 +130,27 @@ b_io_fd b_open(char *filename, int flags)
 	user's buffer into file. Buffer should start with filesize I think.
 	*/
 
-	// Allows multiple fcb for the same file, can add mutex locks later.
-	strcpy(fcbArray[returnFd].fileName, ppi.parent[ppi.lei].name);
-	fcbArray[returnFd].buflen = ppi.parent[ppi.lei].size;
-	fcbArray[returnFd].buf = malloc(vcb->block_size);
-	fcbArray[returnFd].index = 0;
-	fcbArray[returnFd].flags = flags;
-	fcbArray[returnFd].blockTracker = ppi.parent[ppi.lei].LBAlocation;
-	fcbArray[returnFd].bufferTracker = 0;
-	fcbArray[returnFd].startBlock = ppi.parent[ppi.lei].LBAlocation;
-	fcbArray[returnFd].numBytesRead = 0;
-	fcbArray[returnFd].eof = 0;
-	fcbArray[returnFd].fileSize = ppi.parent[ppi.lei].size;
-
-	if (fcbArray[returnFd].buf == NULL)
+	if (ppi.isFile)
 	{
-		fprintf(stderr, "b_open: Memory allocation failed.\n");
-		b_close(returnFd);
-		return -1;
+		// Allows multiple fcb for the same file, can add mutex locks later.
+		strcpy(fcbArray[returnFd].fileName, ppi.parent[ppi.lei].name);
+		fcbArray[returnFd].buflen = ppi.parent[ppi.lei].size;
+		fcbArray[returnFd].buf = malloc(vcb->block_size);
+		fcbArray[returnFd].index = 0;
+		fcbArray[returnFd].flags = flags;
+		fcbArray[returnFd].blockTracker = ppi.parent[ppi.lei].LBAlocation;
+		fcbArray[returnFd].bufferTracker = 0;
+		fcbArray[returnFd].startBlock = ppi.parent[ppi.lei].LBAlocation;
+		fcbArray[returnFd].numBytesRead = 0;
+		fcbArray[returnFd].eof = 0;
+		fcbArray[returnFd].fileSize = ppi.parent[ppi.lei].size;
+
+		if (fcbArray[returnFd].buf == NULL)
+		{
+			fprintf(stderr, "b_open: Memory allocation failed.\n");
+			b_close(returnFd);
+			return -1;
+		}
 	}
 
 	return (returnFd); // all set
@@ -147,6 +172,9 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 }
 
 // Interface to write function
+/*
+
+*/
 int b_write(b_io_fd fd, char *buffer, int count)
 {
 	if (startup == 0)
@@ -307,7 +335,6 @@ int b_read(b_io_fd fd, char *buffer, int count)
 	{
 		return readCount;
 	}
-
 }
 
 // Interface to Close the file
