@@ -111,12 +111,12 @@ Pass a trimmed path into parsePath. No handling for absolute/relative needed her
 
 	char *saveptr;
 	char *token1 = strtok_r(pathCopy, '/', &saveptr);
-	
+
 	char *token2;
 
 start do loop.
 	Will it ever just be one token? Yes, in this case, create the file in cwd.
-	
+
 	Otherwise, loop through. Keep pulling token2 from strtok_r.
 	If token2 is NOT NULL:
 		We add '/' and token1 to our new path with strcat.
@@ -126,7 +126,7 @@ start do loop.
 		exit the loop
 	Call parsePath on the newPath.
 	if path is a valid directory, create a new file with token1 filename
-	in the dir, save in its parent DE. 
+	in the dir, save in its parent DE.
 	Create the file itself - what does this entail? Clearing bytes? etc.
 
 
@@ -214,33 +214,78 @@ Else, return an error.
 
 	char *saveptr;
 	char *token1 = strtok_r(pathCopy, '/', &saveptr);
-	
+
 	char *token2;
 	int cwdFlag = 0;
 	char *newPath = malloc(CWD_SIZE);
-	if(newPath == NULL)
+	if (newPath == NULL)
 	{
 		fprintf(stderr, "b_open: newPath malloc failure.\n");
 		return -1;
 	}
 
-	do 
+	do
 	{
 		token2 = strtok_r(NULL, '/', &saveptr);
 		cwdFlag++;
-		if( cwdFlag == 1 && token2 == NULL)
+		if (cwdFlag == 1 && token2 == NULL)
 		{
 			/*
+			TODO:
+			find unused DE in cwdGlobal
 			token1 will be the new name of a file created in cwd
 			create fcb for fcbArray
 			free newPath
 			return the fd
 			*/
+
+			DE *parentOfFile = cwdGlobal;
+
+			int x = findUnusedDE(parentOfFile);
+			parentOfFile[x].dirNumBlocks = 0;
+			parentOfFile[x].isDirectory = 0;
+			parentOfFile[x].lastAccessed = (time_t)(-1);
+			parentOfFile[x].lastModified = (time_t)(-1);
+			parentOfFile[x].LBAindex = -1;
+			parentOfFile[x].LBAlocation = -1;
+			strcpy(parentOfFile[x].name, token1);
+			parentOfFile[x].size = 0;
+			parentOfFile[x].timeCreation = (time_t)(-1);
+
+			// Update parentOfFile
+			int saveRet = saveDir(parentOfFile);
+			if (saveRet != 1)
+			{
+				fprintf(stderr, "b_open: could not saveDir.\n");
+				return -1;
+			}
+
+			strcpy(fcbArray[returnFd].fileName, parentOfFile[x].name);
+			fcbArray[returnFd].buflen = parentOfFile[x].size;
+			fcbArray[returnFd].buf = malloc(vcb->block_size);
+			fcbArray[returnFd].index = 0;
+			fcbArray[returnFd].flags = flags;
+			fcbArray[returnFd].blockTracker = parentOfFile[x].LBAlocation;
+			fcbArray[returnFd].bufferTracker = 0;
+			fcbArray[returnFd].startBlock = parentOfFile[x].LBAlocation;
+			fcbArray[returnFd].numBytesRead = 0;
+			fcbArray[returnFd].eof = 0;
+			fcbArray[returnFd].fileSize = parentOfFile[x].size;
+
+			if (fcbArray[returnFd].buf == NULL)
+			{
+				fprintf(stderr, "b_open: Memory allocation failed.\n");
+				b_close(returnFd);
+				free(newPath);
+				return -1;
+			}
+			free(newPath);
+			return (returnFd);
 		}
 
-		if(token2 != NULL)
+		if (token2 != NULL)
 		{
-			//Add '/' and token1 to newPath
+			// Add '/' and token1 to newPath
 			strcat(newPath, "/");
 			strcat(newPath, token2);
 			token1 = token2;
@@ -255,16 +300,63 @@ Else, return an error.
 
 	ppinfo ppi2;
 	int ppRet = parsePath(newPath, &ppi2);
-	if(ppRet != -1)
+	if (ppRet != -1)
 	{
 		/*
+		TODO:
 			ppi2.parent[ppi2.lei] IS the parent
-			Create a file in this parent. Will be similar
-			to md? maybe a helper method?
-		*/
+			Create a DE to describe the child file in this parent.
+			LBAlocation -1 and size will be 0.
+			LBAlocation and size to be updated with cat or other methods that fill the file.
 
+		*/
+		DE *parentOfFile = loadDirLBA(ppi2.parent[ppi2.lei].LBAlocation,
+									  ppi2.parent[ppi2.lei].dirNumBlocks);
+
+		int x = findUnusedDE(parentOfFile);
+		parentOfFile[x].dirNumBlocks = 0;
+		parentOfFile[x].isDirectory = 0;
+		parentOfFile[x].lastAccessed = (time_t)(-1);
+		parentOfFile[x].lastModified = (time_t)(-1);
+		parentOfFile[x].LBAindex = -1;
+		parentOfFile[x].LBAlocation = -1;
+		strcpy(parentOfFile[x].name, token1);
+		parentOfFile[x].size = 0;
+		parentOfFile[x].timeCreation = (time_t)(-1);
+
+		// Update parentOfFile
+		int saveRet = saveDir(parentOfFile);
+		if (saveRet != 1)
+		{
+			fprintf(stderr, "b_open: could not saveDir.\n");
+			return -1;
+		}
+
+		strcpy(fcbArray[returnFd].fileName, parentOfFile[x].name);
+		fcbArray[returnFd].buflen = parentOfFile[x].size;
+		fcbArray[returnFd].buf = malloc(vcb->block_size);
+		fcbArray[returnFd].index = 0;
+		fcbArray[returnFd].flags = flags;
+		fcbArray[returnFd].blockTracker = parentOfFile[x].LBAlocation;
+		fcbArray[returnFd].bufferTracker = 0;
+		fcbArray[returnFd].startBlock = parentOfFile[x].LBAlocation;
+		fcbArray[returnFd].numBytesRead = 0;
+		fcbArray[returnFd].eof = 0;
+		fcbArray[returnFd].fileSize = parentOfFile[x].size;
+
+		if (fcbArray[returnFd].buf == NULL)
+		{
+			fprintf(stderr, "b_open: Memory allocation failed.\n");
+			b_close(returnFd);
+			return -1;
+		}
+
+		free(parentOfFile);
+		free(newPath);
+		return (returnFd);
 	}
 
+	free(newPath);
 	return (returnFd); // all set
 }
 
