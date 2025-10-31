@@ -678,7 +678,7 @@ int fs_stat(const char *path, struct fs_stat *buf)
 int fs_delete(char *filename)
 {
     /*
-    Searches for the filename (where? from curdir?)
+    Searches for the filename in cwd
     Check if filename exists in curdir.
     Check if this filename is a file or directory.
     If file:

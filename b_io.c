@@ -154,8 +154,12 @@ Else, return an error.
 	int parseFlag = parsePath(filename, &ppi);
 
 	// Check that the file exists and is not a directory.
-	if (ppi.parent[ppi.lei].isDirectory || parseFlag == -1)
+	if ((ppi.parent[ppi.lei].isDirectory && ppi.parent[ppi.lei].LBAlocation != vcb->root_directory_block) || parseFlag == -1)
 	{
+		printf("parseFlag: %d\n", parseFlag);
+		printf("ppi.parent[ppi.lei].LBAlocation:%ld\n", ppi.parent[ppi.lei].LBAlocation);
+		printf("vcb->root_directory_block:%d\n", vcb->root_directory_block);
+		printf("rootGlobal.LBAlocation:%ld\n", rootGlobal->LBAlocation);
 		fprintf(stderr, "b_open: parsePath failed or path is a directory\n");
 		return -1;
 	}
