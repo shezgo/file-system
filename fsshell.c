@@ -29,6 +29,7 @@
 #include "fsLow.h"
 #include "mfs.h"
 #include "fsInit.h"
+#include "b_io.h"
 
 
 #define PERMISSIONS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
@@ -48,7 +49,7 @@
 #define CMDCP2FS_ON	0
 #define CMDCD_ON	1
 #define CMDPWD_ON	1
-#define CMDTOUCH_ON	0
+#define CMDTOUCH_ON	1
 #define CMDCAT_ON	0
 
 

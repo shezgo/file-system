@@ -52,6 +52,16 @@ void b_init()
 	for (int i = 0; i < MAXFCBS; i++)
 	{
 		fcbArray[i].buf = NULL; // indicates a free fcbArray
+		strcpy(fcbArray[i].fileName, "");
+		fcbArray[i].buflen = -1;
+		fcbArray[i].index = -1;
+		fcbArray[i].flags = -1;
+		fcbArray[i].blockTracker = -1;
+		fcbArray[i].bufferTracker = -1;
+		fcbArray[i].startBlock = -1;
+		fcbArray[i].numBytesRead = -1;
+		fcbArray[i].eof = -1;
+		fcbArray[i].fileSize = -1;
 	}
 
 	startup = 1;
@@ -216,7 +226,7 @@ Else, return an error.
 	char *token1 = strtok_r(pathCopy, '/', &saveptr);
 
 	char *token2;
-	int cwdFlag = 0;
+	int cwdFlag = 0; // set to 1 if creating a file within cwd
 	char *newPath = malloc(CWD_SIZE);
 	if (newPath == NULL)
 	{
@@ -230,15 +240,6 @@ Else, return an error.
 		cwdFlag++;
 		if (cwdFlag == 1 && token2 == NULL)
 		{
-			/*
-			TODO:
-			find unused DE in cwdGlobal
-			token1 will be the new name of a file created in cwd
-			create fcb for fcbArray
-			free newPath
-			return the fd
-			*/
-
 			DE *parentOfFile = cwdGlobal;
 
 			int x = findUnusedDE(parentOfFile);
@@ -541,7 +542,28 @@ int b_read(b_io_fd fd, char *buffer, int count)
 	}
 }
 
-// Interface to Close the file
+// Interface to Close the file. Returns -1 if failed, 0 if success.
 int b_close(b_io_fd fd)
 {
+	if(fd < 0 || fd >= MAXFCBS)
+	{
+		fprintf(stderr, "b_close: fd is out of bounds.\n");
+		return -1;
+	}
+	int i = fd;
+	free(fcbArray[i].buf);
+	free(fcbArray[i].fileName);
+	fcbArray[i].buf = NULL; // indicates a free fcbArray
+	strcpy(fcbArray[i].fileName, "");//same as fcbArray[i].fileName[0] = '\0';
+	fcbArray[i].buflen = -1;
+	fcbArray[i].index = -1;
+	fcbArray[i].flags = -1;
+	fcbArray[i].blockTracker = -1;
+	fcbArray[i].bufferTracker = -1;
+	fcbArray[i].startBlock = -1;
+	fcbArray[i].numBytesRead = -1;
+	fcbArray[i].eof = -1;
+	fcbArray[i].fileSize = -1;
+
+return 0;
 }
