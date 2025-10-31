@@ -223,7 +223,7 @@ Else, return an error.
 	}
 
 	char *saveptr;
-	char *token1 = strtok_r(pathCopy, '/', &saveptr);
+	char *token1 = strtok_r(pathCopy, "/", &saveptr);
 
 	char *token2;
 	int cwdFlag = 0; // set to 1 if creating a file within cwd
@@ -236,7 +236,7 @@ Else, return an error.
 
 	do
 	{
-		token2 = strtok_r(NULL, '/', &saveptr);
+		token2 = strtok_r(NULL, "/", &saveptr);
 		cwdFlag++;
 		if (cwdFlag == 1 && token2 == NULL)
 		{
@@ -552,7 +552,6 @@ int b_close(b_io_fd fd)
 	}
 	int i = fd;
 	free(fcbArray[i].buf);
-	free(fcbArray[i].fileName);
 	fcbArray[i].buf = NULL; // indicates a free fcbArray
 	strcpy(fcbArray[i].fileName, "");//same as fcbArray[i].fileName[0] = '\0';
 	fcbArray[i].buflen = -1;
