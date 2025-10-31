@@ -244,6 +244,7 @@ int parsePath(char *passedPath, ppinfo *ppi)
             ppi->parent = parent;
             printf("pp debug 4: ppi->parent->name:%s\n", ppi->parent->name);
             printf("pp debug2 print token1:%s, ppi->le:%s\n", token1, ppi->le);
+            printf("pp debug: ppi->lei:%d\n", ppi->lei);
             return (0);
         }
 

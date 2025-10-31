@@ -154,7 +154,7 @@ Else, return an error.
 	int parseFlag = parsePath(filename, &ppi);
 
 	// Check that the file exists and is not a directory.
-	if ((ppi.parent[ppi.lei].isDirectory && ppi.parent[ppi.lei].LBAlocation != vcb->root_directory_block) || parseFlag == -1)
+	if ((ppi.parent[ppi.lei].isDirectory && ppi.parent[0].LBAlocation != vcb->root_directory_block) || parseFlag == -1)
 	{
 		printf("parseFlag: %d\n", parseFlag);
 		printf("ppi.parent[ppi.lei].LBAlocation:%ld\n", ppi.parent[ppi.lei].LBAlocation);
@@ -186,9 +186,10 @@ Else, return an error.
 	user's buffer into file. Buffer should start with filesize I think.
 	*/
 
-	if (ppi.parent[ppi.lei].isDirectory)
+	if (ppi.parent[ppi.lei].isDirectory == 1)
 	{
-		fprintf(stderr, "Path is not a file.\n");
+		fprintf(stderr, "b_open: lei:%d isDirectory:%d",ppi.lei, ppi.parent[ppi.lei].isDirectory);
+		fprintf(stderr, "b_open: Path is not a file.\n");
 		return -1;
 	}
 
