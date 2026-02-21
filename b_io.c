@@ -37,8 +37,8 @@ typedef struct b_fcb
 	int numBytesRead;		 // If this int reaches the file size, then end of file is reached.
 	int eof;				 // The value is 0 if EOF has not been reached, and is 1 if reached.
 	int fileSize;			 // The size of the file
-	DE *parent;
-	int parentLei;
+	DE *parent;				 // The parent DE of the file
+	int parentLei;			 // The access index within the parent DE that points to this file.
 
 } b_fcb;
 

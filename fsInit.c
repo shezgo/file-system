@@ -45,11 +45,11 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		bitmap_bm = loadBMtoMem(blockSize);
 		bm = initBitmap(numberOfBlocks, blockSize, bitmap_bm);
 
-		printf("bm->mapNumBlocks:%d\n", bm->mapNumBlocks);
+		//printf("bm->mapNumBlocks:%d\n", bm->mapNumBlocks);
 		rootGlobal = loadDirLBA(vcb->root_num_blocks, vcb->root_directory_block);
-		printf("fsInit RELOAD rootGlobal.dirNumBlocks:%d\n", rootGlobal[0].dirNumBlocks);
+	
 		// Always start cwd from root when starting up file system.
-		printf("\nfsInit isBitUsed(bm, 12): %d\n\n", isBitUsed(bm, 12));
+		//printf("\nfsInit isBitUsed(bm, 12): %d\n\n", isBitUsed(bm, 12));
 
 		if (rootGlobal == NULL)
 		{
@@ -58,10 +58,6 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 		}
 
 		cwdGlobal = rootGlobal;
-		// Output statement to check if cwdGlobal is initializing to rootGlobal
-		printf("fsInit.c line 60: cwdGlobal->name: %s\n", cwdGlobal->name);
-		printf("rootGlobal->name: %s\n", rootGlobal->name);
-		// Initialize a global current working directory name string
 
 		cwdName = (char *)malloc(CWD_SIZE);
 
@@ -82,7 +78,7 @@ int initFileSystem(uint64_t numberOfBlocks, uint64_t blockSize)
 
 		strcpy(cwdName, "/");
 		// end init cwdName
-		printf("fsInit.c line 75: cwdName: %s\n", cwdName);
+
 		return 0;
 	}
 	// ********************************************************************************************
