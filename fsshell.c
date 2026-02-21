@@ -364,7 +364,7 @@ int cmd_mv(int argcnt, char *argvec[])
 		// Check that src exists.
 		ppinfo srcPpi;
 		int srcRet = parsePath(src, &srcPpi);
-		if (srcRet == -1)
+		if (srcRet == -1 && srcPpi.isFile == 0)
 		{
 			fprintf(stderr, "Source does not exist.\n");
 			return -1;
@@ -396,9 +396,15 @@ int cmd_mv(int argcnt, char *argvec[])
 			}
 
 			//By here, dest exists and is a directory
+			DE *destDir = loadDirLBA(
+				destPpi.parent[destPpi.lei].dirNumBlocks,
+				destPpi.parent[destPpi.lei].LBAlocation
+			);
+			findNameInDir(destDir, srcPpi.le);
 			if(findNameInDir(destPpi.parent, src) != -1)
 			{
 				fprintf(stderr, "Entry with name already exists in dest folder.\n");
+				free(destDir);
 				return -1;
 			}
 
@@ -406,27 +412,60 @@ int cmd_mv(int argcnt, char *argvec[])
 			if(newLei == -1)
 			{
 				fprintf(stderr, "No unused DEs in dest parent.\n");
+				free(destDir);
+				return -1;
 			}
 
 			//Assign all the metadata in new parent 
-			DE *destDE = &destPpi.parent[newLei];
-			DE *srcDE = &srcPpi.parent[srcPpi.lei];
-			destDE->size = srcDE->size;
-			destDE->LBAlocation = srcDE->LBAlocation;
-			destDE->LBAindex = srcDE->LBAindex;
-			strcpy(destDE->name, srcDE->name);
-			destDE->timeCreation = srcDE->timeCreation;
-			destDE->lastAccessed = (time_t)(-1);
-			destDE->lastModified = (time_t)(-1);
-			destDE->isDirectory = srcDE->isDirectory;
-			destDE->dirNumBlocks = srcDE->dirNumBlocks;
+			// 2 cases - src is file or src is dir. Handle file first.
 
-			if (saveDir(destPpi.parent) == -1)
+			//If it's a file, edit its parent's DE of it to be null,
+			//and set new parent's DE[newLei] to have its data.
+
+			/*
+				If it's a directory, you also have to edit its own
+				. and .. entries.
+			
+			*/
+
+			DE *srcDE = &srcPpi.parent[srcPpi.lei];
+
+			destDir[newLei].size += srcDE->size;
+			destDir[newLei].LBAlocation = srcDE->LBAlocation;
+			destDir[newLei].LBAindex = srcDE->LBAindex;
+			strcpy(destDir[newLei].name, srcDE->name);
+			destDir[newLei].timeCreation = srcDE->timeCreation;
+			destDir[newLei].lastAccessed = (time_t)(-1);
+			destDir[newLei].lastModified = (time_t)(-1);
+			destDir[newLei].isDirectory = srcDE->isDirectory;
+			destDir[newLei].dirNumBlocks = srcDE->dirNumBlocks;
+
+
+			if(srcPpi.isFile == 0)
 			{
-				fprintf(stderr, "dest saveDir error\n");
+				//Then source is a directory. 
+				//Load the directory and edit its .. dir
+				DE *srcDir = loadDirLBA(srcDE->dirNumBlocks,
+				srcDE->LBAlocation);
+				srcDir[1].dirNumBlocks = destDir[0].dirNumBlocks;
+				srcDir[1].isDirectory = destDir[0].isDirectory;
+				srcDir[1].lastModified = destDir[0].lastModified;
+				srcDir[1].lastAccessed = destDir[0].lastAccessed;
+				srcDir[1].timeCreation = destDir[0].timeCreation;
+				strcpy(srcDir[1].name, destDir[0].name);
+				srcDir[1].LBAindex = destDir[0].LBAindex; 
+				srcDir[1].LBAlocation = destDir[0].LBAlocation;
+				srcDir[1].size = destDir[0].size;
+				if(saveDir(srcDir) == -1)
+				{
+					fprintf(stderr, "srcDir saveDir error\n");
+					free(srcDir);
+				}
+				free(srcDir);
 			}
 
-			//Now reset original parent's DE
+
+			//Now reset original parent's DE about its lost child
 			srcDE->size = -1;
 			srcDE->LBAlocation = -1;
 			srcDE->LBAindex = -1;
@@ -436,6 +475,11 @@ int cmd_mv(int argcnt, char *argvec[])
 			srcDE->lastModified = -1;
 			srcDE->isDirectory = -1;
 			srcDE->dirNumBlocks = -1;
+
+			if (saveDir(destDir) == -1)
+			{
+				fprintf(stderr, "dest saveDir error\n");
+			}
 
 			if(saveDir(srcPpi.parent) == -1)
 			{
