@@ -400,7 +400,7 @@ int cmd_mv(int argcnt, char *argvec[])
 				destPpi.parent[destPpi.lei].dirNumBlocks,
 				destPpi.parent[destPpi.lei].LBAlocation
 			);
-			findNameInDir(destDir, srcPpi.le);
+
 			if(findNameInDir(destPpi.parent, src) != -1)
 			{
 				fprintf(stderr, "Entry with name already exists in dest folder.\n");
@@ -408,7 +408,7 @@ int cmd_mv(int argcnt, char *argvec[])
 				return -1;
 			}
 
-			int newLei = findUnusedDE(destPpi.parent);
+			int newLei = findUnusedDE(destDir);
 			if(newLei == -1)
 			{
 				fprintf(stderr, "No unused DEs in dest parent.\n");
@@ -430,7 +430,8 @@ int cmd_mv(int argcnt, char *argvec[])
 
 			DE *srcDE = &srcPpi.parent[srcPpi.lei];
 
-			destDir[newLei].size += srcDE->size;
+			destDir[newLei].size = srcDE->size;
+			destDir[0].size += destDir[newLei].size;
 			destDir[newLei].LBAlocation = srcDE->LBAlocation;
 			destDir[newLei].LBAindex = srcDE->LBAindex;
 			strcpy(destDir[newLei].name, srcDE->name);
@@ -479,12 +480,14 @@ int cmd_mv(int argcnt, char *argvec[])
 			if (saveDir(destDir) == -1)
 			{
 				fprintf(stderr, "dest saveDir error\n");
+				free(destDir);
 			}
 
 			if(saveDir(srcPpi.parent) == -1)
 			{
 				fprintf(stderr, "src saveDir error\n");
 			}
+			free(destDir);
 
 		}
 
