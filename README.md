@@ -1,193 +1,333 @@
-Note - while this reads as a group project, this was completed by @shezgo independently (and is still receiving updates).
-Thanks for looking!
-Contact: shezpc@gmail.com
+# Custom File System
 
-# CSC415 Group Term Assignment - File System
+This project is a Unix-like simple file system implementation written in C, built on top of a simulated block device, a low level partition system which was provided by Robert Bierman, professor at SFSU. It was completed as a main project for an Operating Systems class - while it was a group project, I completed this individually with the exception of the low level partition system.
 
+The shell provides an interactive command-line interface to navigate, create, read, and manage files and directories stored within a volume file on disk.
 
-This is a GROUP assignment written in C.  Only one person on the team needs to submit the project.
+---
 
-**Assignment Purpose and Learning Outcomes:**
-- Large scale project planning
-- Working in groups
-- Understanding the file system
-- Understanding of low level file functionality
-- Multi-Phased Project (multiple due dates)
-- Advanced buffering
-- Freespace allocation and release management
-- Persistence
-- Directory structures
-- Tracking file information 
+## Free Space Bitmap and Contiguous Allocation
 
-**Let me remind you of the general expectations for all projects:** 
-- All projects are done in C in the Ubuntu Linux Virtual Machine.
-- Code must be neat, with proper and consistent indentation and well documented. 
-- Keep line to around 80 characters per line, and not line greater than 100 characters.
-- Comments must describe the logic and reason for the code and not repeat the code.  
-- Variables must have meaningful names and be in a consistent format (I do not care if you use camelCase or under_scores in variables but be consistent.
-- You must use `make` to compile the program.
-- You must use `make run` (sometimes with RUNOPTIONS) to execute the program.
-- In addition, each file must have the standard header as defined below.
-- All source files and writeup must be in the main branch of the github.
+The file system tracks which disk blocks are free or in use using a **free space bitmap** — a compact array of bits where each bit corresponds to one disk block. A `0` bit means the block is free; a `1` bit means it is occupied.
 
-Each .c and .h file must have a standard header as defined below.  Make sure to put in your section number (replace the #), your name, your student IDs, a proper project name, GitHub name, Group name, filename, and description of the project.  Do not alter the number of asterisks and ensure that the header starts on line 1 of the file.
+### Layout on Disk
 
 ```
-/**************************************************************
-* Class::  CSC-415-0# Spring 2024
-* Name::
-* Student IDs::
-* GitHub-Name::
-* Group-Name::
-* Project:: Basic File System
-*
-* File:: <name of this file>
-*
-* Description::
-*
-**************************************************************/
+Block 0:        Volume Control Block (VCB) — filesystem metadata
+Blocks 1–N:     Bitmap — one bit per block in the entire volume
+Block N+1 onward: Root directory, then user files and directories
 ```
 
+The bitmap itself occupies as many blocks as needed to represent every block in the volume. On initialization, blocks 0 through N (the VCB and bitmap blocks themselves) are pre-marked as used.
 
+### Contiguous Allocation
 
-Your team have been designing components of a file system.  You have defined the goals and designed the directory entry structure, the volume structure and the free space.  Now it is time to implement your file system.
+When a file or directory needs space, `fsAlloc(n)` performs a **linear first-fit search** through the bitmap looking for `n` consecutive free bits. Once a run of `n` free blocks is found, all of them are marked used atomically and the starting block number is returned.
 
-While each of you can have your own github, only one is what you use for the project to be turned in.  Make sure to list that one on the writeups.
+- **Directories** are always allocated **5 contiguous blocks**.
+- **Files** are always allocated **10 contiguous blocks** at creation time, regardless of initial content.
 
-The project is in three phases.  The first phase is the "formatting" the volume.  This is further described in the steps for phase one and the phase one assignment.
+This means every allocation is a single contiguous region on disk — there is no fragmentation within a single file or directory, and no indirection tables or extent lists. The tradeoff is that after repeated creates and deletes, free space can become fragmented into gaps smaller than 5 or 10 blocks, potentially causing allocations to fail even when total free space is sufficient. 
 
-The second phase is the implementation of the directory based functions.  See Phase two assignment.
+This design decision was made weighing the time and energy costs of implementing extents against creating other projects for potential employers, as I would need to refactor the free space allocation system, bitmap functions, and directory entry structure - additionally, each file would also need an additional black to store its extent list, and more. However, doing so would both improve space efficiency and size caps.
 
-The final phase is the implementation of the file operations.
+Every bitmap change is flushed to disk immediately, and the Volume Control Block's free block count is updated in tandem.
 
-To help I have written the low level LBA based read and write.  The routines are in fsLow.o, the necessary header for you to include file is fsLow.h.  You do NOT need to understand the code in fsLow, but you do need to understand the header file and the functions.  There are 2 key functions:
+---
 
+## Building and Running
 
+### Prerequisites
 
-`uint64_t LBAwrite (void * buffer, uint64_t lbaCount, uint64_t lbaPosition);`
+- GCC
+- GNU Make
+- `readline` library (`libreadline-dev` on Debian/Ubuntu)
 
-`uint64_t LBAread (void * buffer, uint64_t lbaCount, uint64_t lbaPosition);`
+### Commands
 
-LBAread and LBAwrite take a buffer, a count of LBA blocks and the starting LBA block number (0 based).  The buffer must be large enough for the number of blocks * the block size.
+```bash
+# Build the executable
+make
 
-On return, these function returns the number of **blocks** read or written.
+# Build and run with the default volume (SampleVolume, 10 MB, 512-byte blocks)
+make run
 
+# Run under Valgrind for memory checking
+make vrun
 
-
-In addition, I have written a hexdump utility that will allow you to analyze your volume file in the Hexdump subdirectory.
-
-**Your assignment is to write a file system!** 
-
-You will need to format your volume, create and maintain a free space management system, initialize a root directory and maintain directory information, create, read, write, and delete files, and display info.  See below for specifics.
-
-I have provided an initial “main” (fsShell.c) that will be the driver to test you file system.  Your group can modifiy this driver as needed.   The driver will be interactive (with all built in commands) to list directories, create directories, add and remove files, copy files, move files, and two “special commands” one to copy from the normal filesystem to your filesystem and the other from your filesystem to the normal filesystem.
-
-You should modify this driver as needed for your filesystem, adding the display/setting of any additional meta data, and other functions you want to add.
-
-The shell also calls two function in the file fsInit.c `initFileSystem` and `exitFileSystem` which are routines for you to fill in with whatever initialization and exit code you need for your file system.  
-
-Some specifics - you need to provide the following interfaces:
-
-```
-b_io_fd b_open (char * filename, int flags);
-int b_read (b_io_fd fd, char * buffer, int count);
-int b_write (b_io_fd fd, char * buffer, int count);
-int b_seek (b_io_fd fd, off_t offset, int whence);
-int b_close (b_io_fd fd);
-
+# Remove compiled objects and the executable
+make clean
 ```
 
-Note that the function are similar to the b_read you have done, there is a signifigant difference since you now write the function to find the file information.  
-You have to have methods of locating files, and knowing which logical block addresses are associated with the file.
+`make run` is equivalent to:
 
-Directory Functions - see [https://www.thegeekstuff.com/2012/06/c-directory/](https://www.thegeekstuff.com/2012/06/c-directory/) for reference.
-
-```
-int fs_mkdir(const char *pathname, mode_t mode);
-int fs_rmdir(const char *pathname);
-fdDir * fs_opendir(const char *pathname);
-struct fs_diriteminfo *fs_readdir(fdDir *dirp);
-int fs_closedir(fdDir *dirp);
-
-char * fs_getcwd(char *pathbuffer, size_t size);
-int fs_setcwd(char * pathname);   //linux chdir
-int fs_isFile(char * filename);	//return 1 if file, 0 otherwise
-int fs_isDir(char * pathname);		//return 1 if directory, 0 otherwise
-int fs_delete(char* filename);	//removes a file
-
-// This is NOT the directory entry, it is JUST for readdir.
-struct fs_diriteminfo
-    {
-    unsigned short d_reclen;    /* length of this record */
-    unsigned char fileType;    
-    char d_name[256]; 			/* filename max filename is 255 characters */
-    };
-```
-Finally file stats - not all the fields in the structure are needed for this assingment
-
-```
-int fs_stat(const char *filename, struct fs_stat *buf);
-
-struct fs_stat
-    {
-    off_t     st_size;    		/* total size, in bytes */
-    blksize_t st_blksize; 		/* blocksize for file system I/O */
-    blkcnt_t  st_blocks;  		/* number of 512B blocks allocated */
-    time_t    st_accesstime;   	/* time of last access */
-    time_t    st_modtime;   	/* time of last modification */
-    time_t    st_createtime;   	/* time of last status change */
-	
-    * add additional attributes here for your file system */
-    };
-
+```bash
+./fsshell SampleVolume 10000000 512
 ```
 
-These interfaces will also be provided to you in mfs.h.
+Where:
+- `SampleVolume` — path to the volume file (created automatically on first run)
+- `10000000` — total volume size in bytes (10 MB)
+- `512` — block size in bytes
 
-**Note:** You will need to modify mfs.h for the fdDIR strucutre to be what your file system need to maintain and track interation through the directory structure.
+On first launch the volume file is created and initialized from scratch. On subsequent launches, the existing volume is reloaded from disk, preserving all files and directories as `persistent memory`.
 
-A shell program designed to demonstrate your file system called fsshell.c is proviced.  It has a number of built in functions that will work if you implement the above interfaces, these are:
+---
+
+## Interactive Shell Commands
+
+Once the program is running you are dropped into an interactive shell prompt. Type `help` to see all commands, or `exit` to quit. The shell supports **single and double quoted strings** and **backslash-escaped spaces** in arguments (e.g., `cd "my folder"` or `cd my\ folder`).
+
+---
+
+### `help`
+
 ```
-ls - Lists the file in a directory
-cp - Copies a file - source [dest]
-mv - Moves a file - source dest
-md - Make a new directory
-rm - Removes a file or directory
-touch - creates a file
-cat - (limited functionality) displays the contents of a file
-cp2l - Copies a file from the test file system to the linux file system
-cp2fs - Copies a file from the Linux file system to the test file system
-cd - Changes directory
-pwd - Prints the working directory
-history - Prints out the history
-help - Prints out help
+help
 ```
 
+Prints a summary of all available commands and their syntax.
 
-This is deliberately vague, as it is dependent on your filesystem design.  And this all you may get initially for a real-world assignment, so if you have questions, please ask.
+---
 
-We will discuss some of this in class.
+### `exit`
 
-For our purposes use 10,000,000 or less (minimum 500,000) bytes for the volume size and 512 bytes per sector.  These are the values to pass into startPartitionSystem.
+```
+exit
+```
 
-What needs to be submitted (via GitHub):
+Cleanly shuts down the file system (writes any pending state) and terminates the program. Equivalent to pressing `Ctrl+D` at the prompt.
 
-* 	All source files (.c and .h)
-* 	Modified Driver program (must be a program that just utilizes the header file for your file system).
-* 	The Driver program must be named:  `fsshell.c`
-* 	A make file (named “Makefile”) to build your entire program
- 
-* A PDF writeup on project that should include (this is also submitted in **Canvas**):
-	* The github link for your group submission.
-	* The plan for each phase and changes made
-	* A description of your file system
-	* Issues you had
-	* Details of how each of your functions work
-	* Screen shots showing each of the commands listed above
-* 	Your volume file (limit 10MB)
-*  There will also be an INDIVIDUAL report (form) to complete.
+---
 
+### `pwd`
 
+```
+pwd
+```
 
+Prints the absolute path of the current working directory.
 
+**Example:**
+```
+[/]$ pwd
+/
+[/]$ cd docs
+[/docs]$ pwd
+/docs
+```
 
+---
+
+### `ls`
+
+```
+ls [--all | -a] [--long | -l] [pathname]
+```
+
+Lists the contents of a directory. With no arguments, lists the current working directory.
+
+| Flag | Description |
+|------|-------------|
+| `--all` / `-a` | Include all entries (currently same as default; reserved for hidden file support) |
+| `--long` / `-l` | Long format: shows permissions, size, timestamps, and name |
+
+**Example:**
+```
+[/]$ ls
+docs  notes.txt  src
+[/]$ ls -l
+drwxr-xr-x   160  Feb 10 12:34  docs
+-rw-r--r--  5120  Feb 10 12:35  notes.txt
+drwxr-xr-x   160  Feb 10 12:36  src
+[/]$ ls /docs
+readme.md  images
+```
+
+---
+
+### `cd`
+
+```
+cd <path>
+```
+
+Changes the current working directory. Supports:
+- **Absolute paths** — starting with `/` (e.g., `cd /docs/images`)
+- **Relative paths** — relative to the current directory (e.g., `cd images`)
+- **`.`** — current directory (no-op)
+- **`..`** — parent directory
+
+**Example:**
+```
+[/]$ cd docs
+[/docs]$ cd ..
+[/]$ cd /docs/images
+[/docs/images]$
+```
+
+---
+
+### `md`
+
+```
+md <pathname>
+```
+
+Creates a new directory at the specified path. The parent directory must already exist. Allocates 5 contiguous blocks on disk for the new directory. The new directory is initialized with `.` (self) and `..` (parent) entries.
+
+**Example:**
+```
+[/]$ md projects
+[/]$ md projects/2024
+```
+
+---
+
+### `touch`
+
+```
+touch <filename>
+```
+
+Creates a new, empty file in the current working directory. Allocates 10 contiguous blocks on disk immediately. The file size is recorded as 0 bytes until data is written via `cp2fs` or `cp`.
+
+**Example:**
+```
+[/]$ touch notes.txt
+[/]$ ls
+notes.txt
+```
+
+---
+
+### `cat`
+
+```
+cat <srcfile>
+```
+
+Reads and prints the contents of a file to the terminal. Reads sequentially in 200-byte chunks until the end of the file.
+
+**Example:**
+```
+[/]$ cat notes.txt
+Hello, world!
+This is my note.
+```
+
+---
+
+### `cp`
+
+```
+cp <srcfile> [destfile]
+```
+
+Copies a file within the custom filesystem. If `destfile` is omitted, the destination defaults to the same name as the source (effectively a no-op copy in place). Both paths must be within the custom filesystem.
+
+**Example:**
+```
+[/]$ cp notes.txt notes_backup.txt
+```
+
+---
+
+### `mv`
+
+```
+mv <src> <dest>
+```
+
+Moves or renames a file or directory. Updates the directory entry in the parent to reflect the new name/location. No data blocks are moved — only the metadata is updated.
+
+**Example:**
+```
+[/]$ mv notes.txt docs/notes.txt
+[/]$ mv old_name.txt new_name.txt
+```
+
+---
+
+### `rm`
+
+```
+rm <path>
+```
+
+Removes a file or an **empty** directory at the given path.
+
+- If `path` is a **file**: its 10 allocated blocks are zeroed out on disk and freed in the bitmap.
+- If `path` is a **directory**: the directory must be empty (no entries beyond `.` and `..`). Its 5 blocks are zeroed and freed.
+
+**Example:**
+```
+[/]$ rm notes.txt
+[/]$ rm emptydir
+```
+
+---
+
+### `cp2fs`
+
+```
+cp2fs <linux-src> [destfile]
+```
+
+Copies a file **from the Linux/host filesystem into the custom filesystem**. `linux-src` is a path on the host OS. `destfile` is the destination filename inside the custom filesystem (defaults to the source filename if omitted). This is the primary way to import data into the volume.
+
+**Example:**
+```
+[/]$ cp2fs /home/user/report.pdf report.pdf
+[/]$ cp2fs ~/photo.jpg
+```
+
+---
+
+### `cp2l`
+
+```
+cp2l <srcfile> [linux-dest]
+```
+
+Copies a file **from the custom filesystem out to the Linux/host filesystem**. `srcfile` is a path within the custom filesystem. `linux-dest` is the destination path on the host OS (defaults to the source filename in the current host directory if omitted). This is the primary way to export data from the volume.
+
+**Example:**
+```
+[/]$ cp2l report.pdf /home/user/exported_report.pdf
+[/]$ cp2l notes.txt
+```
+
+---
+
+### `history`
+
+```
+history
+```
+
+Prints a numbered list of all commands entered during the current session, in the order they were executed.
+
+**Example:**
+```
+[/]$ history
+  1  ls
+  2  cd docs
+  3  ls -l
+  4  history
+```
+
+---
+
+## Architecture Overview
+
+| Component | File(s) | Role |
+|-----------|---------|------|
+| Shell driver | `fsshell.c` | Command parsing, dispatch table, readline integration |
+| Initialization | `fsInit.c/h` | Mount/unmount volume, bootstrap new filesystem |
+| File system API | `mfs.c/h` | `mkdir`, `cd`, `ls`, `delete`, path resolution |
+| Bitmap | `bitmap.c/h` | Free space tracking and contiguous block allocation |
+| Buffered I/O | `b_io.c/h` | File open/read/write/close with per-block buffering |
+| Directory entries | `directory_entry.c/h` | DE struct, directory init, slot management |
+| Volume Control Block | `volume_control_block.c/h` | VCB struct, disk read/write |
+| Low-level block I/O | `fsLow.h` | `LBAread` / `LBAwrite` for raw block access |
