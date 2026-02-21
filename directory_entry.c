@@ -42,9 +42,9 @@ DE *initDir(int maxEntries, DE *parent, int parentIndex, char * ppile, Bitmap *b
 
     // Calculate number of entries that can fit inside the directory block(s)
     int actualEntries = bytesToAlloc / sizeof(DE);
-    printf("From directory_entry.c->initDir:BEFORE fsAlloc:bm->fsNumBlocks:%d, blocksNeeded:%d\n", bm->fsNumBlocks, blocksNeeded);
+    //printf("From directory_entry.c->initDir:BEFORE fsAlloc:bm->fsNumBlocks:%d, blocksNeeded:%d\n", bm->fsNumBlocks, blocksNeeded);
     int newLoc = fsAlloc(bm, blocksNeeded);
-    printf("From directory_entry.c->initDir: newLoc:%d bm->fsNumBlocks:%d, blocksNeeded:%d\n", newLoc, bm->fsNumBlocks, blocksNeeded);
+    //printf("From directory_entry.c->initDir: newLoc:%d bm->fsNumBlocks:%d, blocksNeeded:%d\n", newLoc, bm->fsNumBlocks, blocksNeeded);
     int entriesPerBlock = actualEntries / blocksNeeded; // Old code
 
     // Assign LBA locations to each directory entry
@@ -64,9 +64,9 @@ DE *initDir(int maxEntries, DE *parent, int parentIndex, char * ppile, Bitmap *b
     }
 
     // Initialize . entry in the directory
-    printf("From directory_entry.h->initDir: newLoc:%d blocksNeeded:%d\n", newLoc, blocksNeeded);
+    //printf("From directory_entry.h->initDir: newLoc:%d blocksNeeded:%d\n", newLoc, blocksNeeded);
     time_t tc = time(NULL);
-    printf("directory_entry tc test:%ld\n", tc);
+    //printf("directory_entry tc test:%ld\n", tc);
     newDir[0].size = actualEntries * sizeof(DE);
     strcpy(newDir[0].name, ".");
     newDir[0].isDirectory = 1;
@@ -92,43 +92,43 @@ DE *initDir(int maxEntries, DE *parent, int parentIndex, char * ppile, Bitmap *b
     strcpy(newDir[1].name, "..");
 
     int writeReturn = LBAwrite((void *)newDir, blocksNeeded, newLoc);
-    printf("initDir writeReturn:%d\n", writeReturn);
+    //printf("initDir writeReturn:%d\n", writeReturn);
     if (writeReturn != blocksNeeded)
     {
         perror("Failed to initDir \n");
         exit(EXIT_FAILURE);
     }
 
-    printf("directory_entry.c debug 1\n");
+    //printf("directory_entry.c debug 1\n");
 
-//* PICKUP DEBUG: This block is not executing at all! Has to be where the issues is.
-    printf("parent pointer value: %p\n", (void *)parent);
-    printf("parentIndex:%d\n",parentIndex);
-printf("ppile pointer value: %p\n", (void *)ppile);
+
+//     printf("parent pointer value: %p\n", (void *)parent);
+//     printf("parentIndex:%d\n",parentIndex);
+// printf("ppile pointer value: %p\n", (void *)ppile);
 
     if (parent != NULL && parentIndex >= 0 && ppile != NULL)
     {
-    printf("directory_entry.c parent.name:%s\nparentIndex:%d\nppile:%s\n", 
-     parent[0].name, parentIndex, ppile);
-        printf("directory_entry.c debug 1.5\n");
+    //printf("directory_entry.c parent.name:%s\nparentIndex:%d\nppile:%s\n", 
+     //parent[0].name, parentIndex, ppile);
+        //printf("directory_entry.c debug 1.5\n");
         memcpy(&parent[parentIndex], &newDir[0], sizeof(DE));
         strcpy(parent[parentIndex].name, ppile);
-        printf("directory_entry.c parent[parentIndex].name:%s\n", parent[parentIndex].name);
+        //printf("directory_entry.c parent[parentIndex].name:%s\n", parent[parentIndex].name);
     }
-    printf("directory_entry.c debug 2\n");
+    //printf("directory_entry.c debug 2\n");
 
     if (parent != NULL)
     {
-        printf("directory_entry.c debug 3\n");
+        //printf("directory_entry.c debug 3\n");
         int writeReturn2 = LBAwrite((void *)parent, parent[0].dirNumBlocks, parent[0].LBAlocation);
-        printf("initDir: parent writeReturn2:%d\n", writeReturn2);
+        //printf("initDir: parent writeReturn2:%d\n", writeReturn2);
         if (writeReturn2 != parent[0].dirNumBlocks)
         {
             perror("Failed to initDir (parent) \n");
             exit(EXIT_FAILURE);
         }
     }
-    printf("directory_entry.c debug 4\n");
+    // printf("directory_entry.c debug 4\n");
     return newDir;
 }
 

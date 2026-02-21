@@ -160,10 +160,10 @@ Else, return an error.
 	if ((ppi.parent[ppi.lei].isDirectory == 1) ||
 		(parseFlag == -1 && !(ppi.isFile)) && !(flags & O_CREAT))
 	{
-		printf("parseFlag: %d\n", parseFlag);
-		printf("ppi.parent[ppi.lei].LBAlocation:%ld\n", ppi.parent[ppi.lei].LBAlocation);
-		printf("vcb->root_directory_block:%d\n", vcb->root_directory_block);
-		printf("rootGlobal.LBAlocation:%ld\n", rootGlobal->LBAlocation);
+		// printf("parseFlag: %d\n", parseFlag);
+		// printf("ppi.parent[ppi.lei].LBAlocation:%ld\n", ppi.parent[ppi.lei].LBAlocation);
+		// printf("vcb->root_directory_block:%d\n", vcb->root_directory_block);
+		// printf("rootGlobal.LBAlocation:%ld\n", rootGlobal->LBAlocation);
 		fprintf(stderr, "b_open: parsePath failed or path is a directory\n");
 		return -1;
 	}
@@ -185,7 +185,7 @@ Else, return an error.
 	// This should be executing for basic filepath exists case.
 	if (ppi.isFile)
 	{
-		printf("b_open ppi.isFile block\n");
+		// printf("b_open ppi.isFile block\n");
 		// Allows multiple fcb for the same file, can add mutex locks later.
 		strcpy(fcbArray[returnFd].fileName, ppi.parent[ppi.lei].name);
 		fcbArray[returnFd].buflen = ppi.parent[ppi.lei].size; // DEBUG should this be vcb->block_size
@@ -204,8 +204,8 @@ Else, return an error.
 		fcbArray[returnFd].parent = ppi.parent;
 		fcbArray[returnFd].parentLei = ppi.lei;
 
-		printf("ppi.parent[fd].startBlock:%ld\nppi.parent[fd].size:%ld\n", ppi.parent[ppi.lei].LBAlocation, ppi.parent[ppi.lei].size);
-		printf("fcb[fd].startBlock:%d\nfcb[fd].fileSize:%d\n", fcbArray[returnFd].startBlock, fcbArray[returnFd].fileSize);
+		// printf("ppi.parent[fd].startBlock:%ld\nppi.parent[fd].size:%ld\n", ppi.parent[ppi.lei].LBAlocation, ppi.parent[ppi.lei].size);
+		// printf("fcb[fd].startBlock:%d\nfcb[fd].fileSize:%d\n", fcbArray[returnFd].startBlock, fcbArray[returnFd].fileSize);
 
 		if (fcbArray[returnFd].buf == NULL)
 		{
@@ -468,7 +468,7 @@ int b_write(b_io_fd fd, char *buffer, int count)
 	// If writing less than a block from fcbArray[fd]'s current index:
 	if (fcbArray[fd].index + writeCount <= vcb->block_size)
 	{
-		printf("b_write: first clause\n");
+		// printf("b_write: first clause\n");
 		memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer, writeCount);
 		int writeRet = LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].blockTracker);
 
@@ -485,23 +485,23 @@ int b_write(b_io_fd fd, char *buffer, int count)
 		// printf("b_write: writeCount:%d\nfcbArray[fd].index:%d\nfcbArray[fd].blockTracker:%d\nfcbArray[fd].startBlock:%d\n",writeCount, fcbArray[fd].index, fcbArray[fd].blockTracker,fcbArray[fd].startBlock);
 		//  Check/update fileSize if larger than before.
 
-		printf("b_write: writeStop:%d\n", writeStop);
+		// printf("b_write: writeStop:%d\n", writeStop);
 		if (writeStop > fcbArray[fd].fileSize)
 		{
 			fcbArray[fd].fileSize = writeStop;
-			printf("1 b_write: fcbArray[fd].fileSize:%d\n", fcbArray[fd].fileSize);
+			// printf("1 b_write: fcbArray[fd].fileSize:%d\n", fcbArray[fd].fileSize);
 
 			fcbArray[fd].parent[fcbArray[fd].parentLei].size = writeStop;
-			printf("2 b_write: fcbArray[fd].parent[fcbArray[fd].parentLei].size: %ld\n", fcbArray[fd].parent[fcbArray[fd].parentLei].size);
+			// printf("2 b_write: fcbArray[fd].parent[fcbArray[fd].parentLei].size: %ld\n", fcbArray[fd].parent[fcbArray[fd].parentLei].size);
 
 			saveDir(fcbArray[fd].parent);
 		}
 
-		printf("3 b_write: fcb[fd].fileSize:%d\nfcb[fd].startBlock:%d\n", fcbArray[fd].fileSize, fcbArray[fd].startBlock);
-		printf("4 b_write: fcb.parent[lei].size:%ld\nfcb.parent[lei].startBlock:%ld\n",
-			   fcbArray[fd].parent[fcbArray[fd].parentLei].size, fcbArray[fd].parent[fcbArray[fd].parentLei].LBAlocation);
+		// printf("3 b_write: fcb[fd].fileSize:%d\nfcb[fd].startBlock:%d\n", fcbArray[fd].fileSize, fcbArray[fd].startBlock);
+		// printf("4 b_write: fcb.parent[lei].size:%ld\nfcb.parent[lei].startBlock:%ld\n",
+			   // fcbArray[fd].parent[fcbArray[fd].parentLei].size, fcbArray[fd].parent[fcbArray[fd].parentLei].LBAlocation);
 
-		printf("b_write: fcbArray[fd].parentLei:%d\n", fcbArray[fd].parentLei);
+		// printf("b_write: fcbArray[fd].parentLei:%d\n", fcbArray[fd].parentLei);
 
 		return writeCount;
 	}
@@ -533,7 +533,7 @@ int b_write(b_io_fd fd, char *buffer, int count)
 		{
 			memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer,
 				   vcb->block_size - fcbArray[fd].index);
-			printf("b_write: filling current block before crossing into next block\n");
+			// printf("b_write: filling current block before crossing into next block\n");
 			LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].blockTracker);
 			writeCount = writeCount - (vcb->block_size - fcbArray[fd].index);
 			// Now, have written count - writeCount bytes.
@@ -714,7 +714,7 @@ int b_read(b_io_fd fd, char *buffer, int count)
 
 	if (fcbArray[fd].eof == 1)
 	{
-		printf("b_read: 3End of file reached.\n");
+		printf("b_read: End of file reached.\n");
 	}
 
 	return actualCount;

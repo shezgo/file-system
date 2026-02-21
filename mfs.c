@@ -79,7 +79,7 @@ int entryIsFile(DE *parent, int deIndex)
 
     if (parent[deIndex].isDirectory == 0 && parent[deIndex].name[0] != '\0')
     {
-        printf("Entry is a file.\n");
+        // printf("Entry is a file.\n");
         return 1;
     }
     else
@@ -345,14 +345,14 @@ int parsePath(char *passedPath, ppinfo *ppi)
             ppi->parentExists = 1;
             if (entryIsFile(parent, ppi->lei) == 1)
             {
-                fprintf(stderr, "mfs.c:parsePath: parent[ppi->lei] is a file.\n");
+                //fprintf(stderr, "mfs.c:parsePath: parent[ppi->lei] is a file.\n");
                 ppi->isFile = 1;
                 return -1;
             }
             if (ppi->lei == -1)
             {
 
-                fprintf(stderr, "parsePath: ppi->lei is -1.\n");
+                //fprintf(stderr, "parsePath: ppi->lei is -1.\n");
                 return -1;
             }
 

@@ -500,7 +500,7 @@ int cmd_rm(int argcnt, char *argvec[])
 	}
 
 	char *path = argvec[1];
-	printf("cmd_rm: argvec[1]:%s\n", argvec[1]);
+	//printf("cmd_rm: argvec[1]:%s\n", argvec[1]);
 	// must determine if file or directory
 	if (fs_isDir(path))
 	{
@@ -594,9 +594,9 @@ int cmd_cp2fs(int argcnt, char *argvec[])
 	do
 	{
 		readcnt = read(linux_fd, buf, BUFFERLEN);
-		printf("cmd_cp2fs readcnt:%d\n", readcnt);
+		//printf("cmd_cp2fs readcnt:%d\n", readcnt);
 		b_write(testfs_fd, buf, readcnt);
-		printf("cmd_cp2fs: after b_write\n");
+		//printf("cmd_cp2fs: after b_write\n");
 	} while (readcnt == BUFFERLEN);
 	b_close(testfs_fd);
 	close(linux_fd);
