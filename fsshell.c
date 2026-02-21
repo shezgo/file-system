@@ -401,7 +401,7 @@ int cmd_mv(int argcnt, char *argvec[])
 				destPpi.parent[destPpi.lei].LBAlocation
 			);
 
-			if(findNameInDir(destPpi.parent, src) != -1)
+			if(findNameInDir(destDir, src) != -1)
 			{
 				fprintf(stderr, "Entry with name already exists in dest folder.\n");
 				free(destDir);
