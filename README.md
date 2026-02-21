@@ -73,6 +73,9 @@ Where:
 
 On first launch the volume file is created and initialized from scratch. On subsequent launches, the existing volume is reloaded from disk, preserving all files and directories as `persistent memory`.
 
+<img width="500" height="400" alt="image" src="https://github.com/user-attachments/assets/a4da7e14-1381-44e0-90d5-643566255889" />
+
+
 ---
 
 ## Interactive Shell Commands
@@ -89,6 +92,8 @@ help
 
 Prints a summary of all available commands and their syntax.
 
+<img width="400" height="200" alt="image" src="https://github.com/user-attachments/assets/0737d0ba-1fe1-4501-8f4c-fb430134f647" />
+
 ---
 
 ### `exit`
@@ -98,6 +103,9 @@ exit
 ```
 
 Cleanly shuts down the file system (writes any pending state) and terminates the program. Equivalent to pressing `Ctrl+D` at the prompt.
+
+<img width="400" height="40" alt="image" src="https://github.com/user-attachments/assets/05d09b62-3a9a-4c50-9c1e-110d6799ffe7" />
+
 
 ---
 
@@ -110,13 +118,8 @@ pwd
 Prints the absolute path of the current working directory.
 
 **Example:**
-```
-[/]$ pwd
-/
-[/]$ cd docs
-[/docs]$ pwd
-/docs
-```
+
+<img width="309" height="56" alt="image" src="https://github.com/user-attachments/assets/8d28504a-4093-4894-86cd-d5d7fe605964" />
 
 ---
 
@@ -134,16 +137,9 @@ Lists the contents of a directory. With no arguments, lists the current working 
 | `--long` / `-l` | Long format: shows permissions, size, timestamps, and name |
 
 **Example:**
-```
-[/]$ ls
-docs  notes.txt  src
-[/]$ ls -l
-drwxr-xr-x   160  Feb 10 12:34  docs
--rw-r--r--  5120  Feb 10 12:35  notes.txt
-drwxr-xr-x   160  Feb 10 12:36  src
-[/]$ ls /docs
-readme.md  images
-```
+
+<img width="400" height="73" alt="image" src="https://github.com/user-attachments/assets/78f14050-2ae8-42a5-ad8a-0a6ea2a80b0b" />
+
 
 ---
 
@@ -160,12 +156,9 @@ Changes the current working directory. Supports:
 - **`..`** — parent directory
 
 **Example:**
-```
-[/]$ cd docs
-[/docs]$ cd ..
-[/]$ cd /docs/images
-[/docs/images]$
-```
+
+<img width="303" height="69" alt="image" src="https://github.com/user-attachments/assets/91a071f5-896e-48b9-80d0-033133e6b3be" />
+
 
 ---
 
@@ -178,10 +171,9 @@ md <pathname>
 Creates a new directory at the specified path. The parent directory must already exist. Allocates 5 contiguous blocks on disk for the new directory. The new directory is initialized with `.` (self) and `..` (parent) entries.
 
 **Example:**
-```
-[/]$ md projects
-[/]$ md projects/2024
-```
+
+<img width="350" height="150" alt="image" src="https://github.com/user-attachments/assets/56ca475d-2f39-41da-b3fc-60d3b9199c1f" />
+
 
 ---
 
@@ -194,11 +186,9 @@ touch <filename>
 Creates a new, empty file in the current working directory. Allocates 10 contiguous blocks on disk immediately. The file size is recorded as 0 bytes until data is written via `cp2fs` or `cp`.
 
 **Example:**
-```
-[/]$ touch notes.txt
-[/]$ ls
-notes.txt
-```
+
+<img width="300" height="150" alt="image" src="https://github.com/user-attachments/assets/ed44c9b2-ae27-4001-ac62-db45b5b63802" />
+
 
 ---
 
@@ -211,11 +201,9 @@ cat <srcfile>
 Reads and prints the contents of a file to the terminal. Reads sequentially in 200-byte chunks until the end of the file.
 
 **Example:**
-```
-[/]$ cat notes.txt
-Hello, world!
-This is my note.
-```
+
+<img width="300" height="70" alt="image" src="https://github.com/user-attachments/assets/6e9a1a6c-c656-41e8-ada9-d7d901044412" />
+
 
 ---
 
@@ -225,12 +213,12 @@ This is my note.
 cp <srcfile> [destfile]
 ```
 
-Copies a file within the custom filesystem. If `destfile` is omitted, the destination defaults to the same name as the source (effectively a no-op copy in place). Both paths must be within the custom filesystem.
+Copies a file within the custom filesystem. If `destfile` is omitted, the destination defaults to the same name as the source (effectively a copy in place). Both paths must be within the custom filesystem.
 
 **Example:**
-```
-[/]$ cp notes.txt notes_backup.txt
-```
+
+<img width="300" height="75" alt="image" src="https://github.com/user-attachments/assets/f0ccf2a7-0f99-42cc-9508-83b7c1a81b86" />
+
 
 ---
 
@@ -243,10 +231,9 @@ mv <src> <dest>
 Moves or renames a file or directory. Updates the directory entry in the parent to reflect the new name/location. No data blocks are moved — only the metadata is updated.
 
 **Example:**
-```
-[/]$ mv notes.txt docs/notes.txt
-[/]$ mv old_name.txt new_name.txt
-```
+
+<img width="325" height="270" alt="image" src="https://github.com/user-attachments/assets/3c6ce143-ce13-4f20-9f34-5b0aab9fd179" />
+
 
 ---
 
@@ -262,10 +249,9 @@ Removes a file or an **empty** directory at the given path.
 - If `path` is a **directory**: the directory must be empty (no entries beyond `.` and `..`). Its 5 blocks are zeroed and freed.
 
 **Example:**
-```
-[/]$ rm notes.txt
-[/]$ rm emptydir
-```
+
+<img width="312" height="164" alt="image" src="https://github.com/user-attachments/assets/a693023f-e053-4d16-ab36-00186c5e9ec4" />
+
 
 ---
 
@@ -278,10 +264,9 @@ cp2fs <linux-src> [destfile]
 Copies a file **from the Linux/host filesystem into the custom filesystem**. `linux-src` is a path on the host OS. `destfile` is the destination filename inside the custom filesystem (defaults to the source filename if omitted). This is the primary way to import data into the volume.
 
 **Example:**
-```
-[/]$ cp2fs /home/user/report.pdf report.pdf
-[/]$ cp2fs ~/photo.jpg
-```
+
+<img width="300" height="100" alt="image" src="https://github.com/user-attachments/assets/dcf7fee2-b322-405b-84c0-8cb00098feb6" />
+
 
 ---
 
@@ -294,10 +279,12 @@ cp2l <srcfile> [linux-dest]
 Copies a file **from the custom filesystem out to the Linux/host filesystem**. `srcfile` is a path within the custom filesystem. `linux-dest` is the destination path on the host OS (defaults to the source filename in the current host directory if omitted). This is the primary way to export data from the volume.
 
 **Example:**
-```
-[/]$ cp2l report.pdf /home/user/exported_report.pdf
-[/]$ cp2l notes.txt
-```
+
+<img width="350" height="72" alt="image" src="https://github.com/user-attachments/assets/b79a01ef-9f7f-4ae6-93c5-36f71f86e8c8" />
+<img width="450" height="75" alt="image" src="https://github.com/user-attachments/assets/14b7c447-913d-4da0-a192-2c05806fee7b" />
+
+
+
 
 ---
 
@@ -310,13 +297,9 @@ history
 Prints a numbered list of all commands entered during the current session, in the order they were executed.
 
 **Example:**
-```
-[/]$ history
-  1  ls
-  2  cd docs
-  3  ls -l
-  4  history
-```
+
+<img width="350" height="300" alt="image" src="https://github.com/user-attachments/assets/b40a0feb-8d33-41f9-9195-c8c3e9f4e820" />
+
 
 ---
 
