@@ -158,7 +158,7 @@ Else, return an error.
 	//*DEBUG this block is executing and returning -1 to cmd_cat.
 	// Check that the file exists and is not a directory.
 	if ((ppi.parent[ppi.lei].isDirectory == 1) ||
-		(parseFlag == -1 && !(ppi.isFile)))
+		(parseFlag == -1 && !(ppi.isFile)) && !(flags & O_CREAT))
 	{
 		printf("parseFlag: %d\n", parseFlag);
 		printf("ppi.parent[ppi.lei].LBAlocation:%ld\n", ppi.parent[ppi.lei].LBAlocation);
