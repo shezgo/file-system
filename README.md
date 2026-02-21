@@ -42,6 +42,7 @@ Every bitmap change is flushed to disk immediately, and the Volume Control Block
 - GCC
 - GNU Make
 - `readline` library (`libreadline-dev` on Debian/Ubuntu)
+- *Note, this project was built in a Linux virtual machine.
 
 ### Commands
 
