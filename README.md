@@ -1,6 +1,6 @@
 # Custom File System
 
-This project is a Unix-like, simple file system implementation written in C, built on top of a simulated block device, a low level partition system which was provided by Robert Bierman, professor at SFSU. I completed this individually as a main project for Operating Systems class with the exception of the low level partition system.
+This project is a Unix-like, simple file system implementation written in C, built on top of a simulated block device, a low level partition system which was provided by Robert Bierman, professor at SFSU. I completed this individually as a main project for an Operating Systems class with the exception of the low level partition system.
 
 The shell provides an interactive command-line interface to navigate, create, read, and manage files and directories stored within a volume file on disk.
 
