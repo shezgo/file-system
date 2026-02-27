@@ -327,7 +327,7 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 		return (-1); // invalid file descriptor
 	}
 
-	return (0); // Change this
+	return (0); //success
 }
 
 int b_write(b_io_fd fd, char *buffer, int count)
