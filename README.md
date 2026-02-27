@@ -262,10 +262,12 @@ cp2fs <linux-src> [destfile]
 ```
 
 Copies a file **from the Linux/host filesystem into the custom filesystem**. `linux-src` is a path on the host OS. `destfile` is the destination filename inside the custom filesystem (defaults to the source filename if omitted). This is the primary way to import data into the volume.
+Uses threading to do this as a background task, and atomically handles detached thread tracking.
 
 **Example:**
+<img width="421" height="183" alt="image" src="https://github.com/user-attachments/assets/a742fdae-9742-401d-b75d-49293c001870" />
 
-<img width="300" height="100" alt="image" src="https://github.com/user-attachments/assets/dcf7fee2-b322-405b-84c0-8cb00098feb6" />
+
 
 
 ---
@@ -277,11 +279,15 @@ cp2l <srcfile> [linux-dest]
 ```
 
 Copies a file **from the custom filesystem out to the Linux/host filesystem**. `srcfile` is a path within the custom filesystem. `linux-dest` is the destination path on the host OS (defaults to the source filename in the current host directory if omitted). This is the primary way to export data from the volume.
+Uses threading to do this as a background task, and atomically handles detached thread tracking.
 
 **Example:**
 
-<img width="350" height="72" alt="image" src="https://github.com/user-attachments/assets/b79a01ef-9f7f-4ae6-93c5-36f71f86e8c8" />
-<img width="450" height="75" alt="image" src="https://github.com/user-attachments/assets/14b7c447-913d-4da0-a192-2c05806fee7b" />
+<img width="350" height="70" alt="image" src="https://github.com/user-attachments/assets/8ca78cff-1212-4721-b2b6-d1bcc602fd5d" />
+
+
+<img width="300" height="250" alt="image" src="https://github.com/user-attachments/assets/ad6f04bd-e5d4-4f2d-be96-428b4e08cc22" />
+
 
 
 
