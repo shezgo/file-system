@@ -556,7 +556,7 @@ typedef struct
 } CopyJob;
 
 static pthread_t activeJobs[MAX_JOBS];
-static _Atomic int jobCount = 0;
+static _Atomic int jobCount = 0; //Used to track max thread usage and wait on detached threads
 static pthread_mutex_t jobsMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void join_all_jobs()
