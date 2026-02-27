@@ -561,7 +561,7 @@ typedef struct
 } CopyJob;
 
 static pthread_t activeJobs[MAX_JOBS];
-static int jobCount = 0;
+static _Atomic int jobCount = 0;
 static pthread_mutex_t jobsMutex = PTHREAD_MUTEX_INITIALIZER;
 
 
@@ -570,8 +570,8 @@ static void register_job(pthread_t tid)
 	pthread_mutex_lock(&jobsMutex);
 	if (jobCount < MAX_JOBS)
 	{
-		jobCount++;
 		activeJobs[jobCount] = tid;
+		jobCount++;
 	}
 	else
 	{
@@ -583,24 +583,10 @@ static void register_job(pthread_t tid)
 
 static void join_all_jobs()
 {
-	//Make this atomic so if new jobs are created mid function, they don't get waited on as well.
-	pthread_mutex_lock(&jobsMutex);
-	int currentCount = jobCount;
-	pthread_t to_join[MAX_JOBS];
-
-	for (int i = 0; i < currentCount; i++)
-	{
-		to_join[i] = activeJobs[i];
-	}
-	pthread_mutex_unlock(&jobsMutex);
-	if (currentCount > 0)
-	{
-		printf("Waiting for %d background jobs to finish...\n", currentCount);
-	}
-	for (int i = 0; i < currentCount; i++)
-	{
-		pthread_join(to_join[i], NULL);
-	}
+    if (jobCount > 0)
+        printf("Waiting for %d background job(s) to finish...\n", jobCount);
+    while (jobCount> 0)
+        usleep(10000);  // poll every 10ms
 }
 
 static void *cp2fs_worker(void *arg)
@@ -613,7 +599,10 @@ static void *cp2fs_worker(void *arg)
 	if (linux_fd < 0)
 	{
 		fprintf(stderr, "cp2fs could not open Linux file '%s'\n", job->src);
+		rl_on_new_line();   // tells readline the cursor moved to a new line
+		rl_redisplay();     // redraws the prompt and any partially-typed input
 		free(job);
+		jobCount--;
 		return NULL;
 	}
 
@@ -621,8 +610,11 @@ static void *cp2fs_worker(void *arg)
 	if (fs_fd < 0)
 	{
 		fprintf(stderr, "cp2fs could not open or create fs file '%s'\n", job->dest);
+		rl_on_new_line();   // tells readline the cursor moved to a new line
+		rl_redisplay();     // redraws the prompt and any partially-typed input
 		close(linux_fd);
 		free(job);
+		jobCount--;
 		return NULL;
 	}
 
@@ -636,7 +628,10 @@ static void *cp2fs_worker(void *arg)
 	close(linux_fd);
 	//Since it's a background task, want notice of completion.
 	printf("\n[done] cp2fs: '%s' -> '%s'\n", job->src, job->dest);
+	rl_on_new_line();   // tells readline the cursor moved to a new line
+	rl_redisplay();     // redraws the prompt and any partially-typed input
 	free(job);
+	jobCount--;
 	return NULL;
 }
 
@@ -650,7 +645,10 @@ static void *cp2l_worker(void *arg)
 	if (fs_fd < 0)
 	{
 		fprintf(stderr, "cp2l could not open fs file '%s'\n", job->src);
+		rl_on_new_line();   // tells readline the cursor moved to a new line
+		rl_redisplay();     // redraws the prompt and any partially-typed input
 		free(job);
+		jobCount--;
 		return NULL;
 	}
 
@@ -658,8 +656,11 @@ static void *cp2l_worker(void *arg)
 	if (linux_fd < 0)
 	{
 		fprintf(stderr, "cp2l could not open/create Linux file '%s'\n", job->dest);
+		rl_on_new_line();   // tells readline the cursor moved to a new line
+		rl_redisplay();     // redraws the prompt and any partially-typed input
 		b_close(fs_fd);
 		free(job);
+		jobCount--;
 		return NULL;
 	}
 
@@ -673,7 +674,10 @@ static void *cp2l_worker(void *arg)
 	close(linux_fd);
 	//Since it's a background task, want notice of completion.
 	printf("\n[done] cp2l: '%s' -> '%s'\n", job->src, job->dest);
+	rl_on_new_line();   // tells readline the cursor moved to a new line
+	rl_redisplay();     // redraws the prompt and any partially-typed input
 	free(job);
+	jobCount--;
 	return NULL;
 }
 /****************************************************
@@ -716,8 +720,9 @@ int cmd_cp2l(int argcnt, char *argvec[])
 	job->dest[sizeof(job->dest) - 1] = '\0';
 
 	pthread_t tid;
+	jobCount++;
 	pthread_create(&tid, NULL, cp2l_worker, job);
-	register_job(tid);
+	pthread_detach(tid);
 	printf("[background] cp2l: copying '%s'...\n", src);
 #endif
 	return 0;
@@ -762,8 +767,9 @@ int cmd_cp2fs(int argcnt, char *argvec[])
 	job->dest[sizeof(job->dest) - 1] = '\0';
 
 	pthread_t tid;
+	jobCount++;
 	pthread_create(&tid, NULL, cp2fs_worker, job);
-	register_job(tid);
+	pthread_detach(tid);
 	printf("[background] cp2fs: copying '%s'...\n", src);
 #endif
 	return 0;
