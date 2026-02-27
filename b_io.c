@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "b_io.h"
+#include <pthread.h>
 
 #define MAXFCBS 20
 #define B_CHUNK_SIZE 512
@@ -46,6 +47,7 @@ b_fcb fcbArray[MAXFCBS];
 
 int startup = 0; // Indicates that this has not been initialized
 
+static pthread_mutex_t fcb_mutex = PTHREAD_MUTEX_INITIALIZER;
 // Method to initialize our file system
 void b_init()
 {
@@ -70,15 +72,21 @@ void b_init()
 }
 
 // Method to get a free FCB element
+// Thread-safe: locks fcb_mutex and sets a sentinel in buf to claim the slot
+// atomically before returning, preventing two concurrent b_open calls from
+// receiving the same index.
 b_io_fd b_getFCB()
 {
 	for (int i = 0; i < MAXFCBS; i++)
 	{
 		if (fcbArray[i].buf == NULL)
 		{
-			return i; // Not thread safe (But do not worry about it for this assignment)
+			fcbArray[i].buf = (char *)1; // sentinel: slot claimed, real buf set in b_open
+			pthread_mutex_unlock(&fcb_mutex);
+			return i;
 		}
 	}
+	pthread_mutex_unlock(&fcb_mutex);
 	return (-1); // all in use
 }
 

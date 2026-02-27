@@ -29,6 +29,7 @@
 #include "mfs.h"
 #include "fsInit.h"
 #include "b_io.h"
+#include "pthread.h"
 
 #define PERMISSIONS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
 
@@ -493,22 +494,6 @@ int cmd_mv(int argcnt, char *argvec[])
 
 	}
 	return -99;
-	// **** TODO ****  For you to implement
-	/*
-
-	This command will move argvec[1] (src) to argvec[2] (dest)
-	src can be either a directory or a file.
-	dest must not be a file.
-	If dest is not an existing dir, mv renames the source to dest.
-
-	Once checks are complete:
-	Update .. of source to being an open DE in dest
-	Update this new DE in dest to containing the meta data
-	of src, ie:
-	dest[newIndex].LBAlocation = src[0].LBAlocation
-	strcpy(dest[newIndex].name, srcName);
-
-	*/
 
 #endif
 	return 0;
@@ -564,17 +549,143 @@ int cmd_rm(int argcnt, char *argvec[])
 }
 
 /****************************************************
+ *  Infrastructure for background copy jobs using threading for cp2fs and cp2l
+ ****************************************************/
+
+#define MAX_JOBS 8
+
+typedef struct 
+{
+	char src[DIRMAX_LEN];
+	char dest[DIRMAX_LEN];
+} CopyJob;
+
+static pthread_t activeJobs[MAX_JOBS];
+static int jobCount = 0;
+static pthread_mutex_t jobsMutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+static void register_job(pthread_t tid)
+{
+	pthread_mutex_lock(&jobsMutex);
+	if (jobCount < MAX_JOBS)
+	{
+		jobCount++;
+		activeJobs[jobCount] = tid;
+	}
+	else
+	{
+		fprintf(stderr, "MAX_JOBS reached, cannot register thread.\n");
+	}
+
+	pthread_mutex_unlock(&jobsMutex);
+}
+
+static void join_all_jobs()
+{
+	//Make this atomic so if new jobs are created mid function, they don't get waited on as well.
+	pthread_mutex_lock(&jobsMutex);
+	int currentCount = jobCount;
+	pthread_t to_join[MAX_JOBS];
+
+	for (int i = 0; i < currentCount; i++)
+	{
+		to_join[i] = activeJobs[i];
+	}
+	pthread_mutex_unlock(&jobsMutex);
+	if (currentCount > 0)
+	{
+		printf("Waiting for %d background jobs to finish...\n", currentCount);
+	}
+	for (int i = 0; i < currentCount; i++)
+	{
+		pthread_join(to_join[i], NULL);
+	}
+}
+
+static void *cp2fs_worker(void *arg)
+{
+	CopyJob *job = (CopyJob *)arg;
+	char buf[BUFFERLEN];
+	int readcnt;
+
+	int linux_fd = open(job->src, O_RDONLY);
+	if (linux_fd < 0)
+	{
+		fprintf(stderr, "cp2fs could not open Linux file '%s'\n", job->src);
+		free(job);
+		return NULL;
+	}
+
+	int fs_fd = b_open(job->dest, O_WRONLY | O_CREAT | O_TRUNC);
+	if (fs_fd < 0)
+	{
+		fprintf(stderr, "cp2fs could not open or create fs file '%s'\n", job->dest);
+		close(linux_fd);
+		free(job);
+		return NULL;
+	}
+
+	do
+	{
+		readcnt = read(linux_fd, buf, BUFFERLEN);
+		b_write(fs_fd, buf, readcnt);
+	} while (readcnt == BUFFERLEN);
+
+	b_close(fs_fd);
+	close(linux_fd);
+	//Since it's a background task, want notice of completion.
+	printf("\n[done] cp2fs: '%s' -> '%s'\n", job->src, job->dest);
+	free(job);
+	return NULL;
+}
+
+static void *cp2l_worker(void *arg)
+{
+	CopyJob *job = (CopyJob *)arg;
+	char buf[BUFFERLEN];
+	int readcnt;
+
+	int fs_fd = b_open(job->src, O_RDONLY);
+	if (fs_fd < 0)
+	{
+		fprintf(stderr, "cp2l could not open fs file '%s'\n", job->src);
+		free(job);
+		return NULL;
+	}
+
+	int linux_fd = open(job->dest, O_WRONLY | O_CREAT | O_TRUNC, PERMISSIONS);
+	if (linux_fd < 0)
+	{
+		fprintf(stderr, "cp2l could not open/create Linux file '%s'\n", job->dest);
+		b_close(fs_fd);
+		free(job);
+		return NULL;
+	}
+
+	do
+	{
+		readcnt = b_read(fs_fd, buf, BUFFERLEN);
+		write(linux_fd, buf, readcnt);
+	} while (readcnt == BUFFERLEN);
+
+	b_close(fs_fd);
+	close(linux_fd);
+	//Since it's a background task, want notice of completion.
+	printf("\n[done] cp2l: '%s' -> '%s'\n", job->src, job->dest);
+	free(job);
+	return NULL;
+}
+/****************************************************
  *  Copy file from test file system to Linux commmand
  ****************************************************/
 int cmd_cp2l(int argcnt, char *argvec[])
 {
 #if (CMDCP2L_ON == 1)
-	int testfs_fd;
-	int linux_fd;
+
 	char *src;
 	char *dest;
-	int readcnt;
-	char buf[BUFFERLEN];
+
 
 	switch (argcnt)
 	{
@@ -593,15 +704,21 @@ int cmd_cp2l(int argcnt, char *argvec[])
 		return (-1);
 	}
 
-	testfs_fd = b_open(src, O_RDONLY);
-	linux_fd = open(dest, O_WRONLY | O_CREAT | O_TRUNC, PERMISSIONS);
-	do
+	CopyJob *job = malloc(sizeof(CopyJob));
+	if (job == NULL)
 	{
-		readcnt = b_read(testfs_fd, buf, BUFFERLEN);
-		write(linux_fd, buf, readcnt);
-	} while (readcnt == BUFFERLEN);
-	b_close(testfs_fd);
-	close(linux_fd);
+		fprintf(stderr, "cp2l: malloc failed\n");
+		return -1;
+	}
+	strncpy(job->src, src, sizeof(job->src) - 1);
+	job->src[sizeof(job->src) - 1] = '\0';
+	strncpy(job->dest, dest, sizeof(job->dest) - 1);
+	job->dest[sizeof(job->dest) - 1] = '\0';
+
+	pthread_t tid;
+	pthread_create(&tid, NULL, cp2l_worker, job);
+	register_job(tid);
+	printf("[background] cp2l: copying '%s'...\n", src);
 #endif
 	return 0;
 }
@@ -612,12 +729,9 @@ int cmd_cp2l(int argcnt, char *argvec[])
 int cmd_cp2fs(int argcnt, char *argvec[])
 {
 #if (CMDCP2FS_ON == 1)
-	int testfs_fd;
-	int linux_fd;
+
 	char *src;
 	char *dest;
-	int readcnt;
-	char buf[BUFFERLEN];
 
 	switch (argcnt)
 	{
@@ -636,17 +750,21 @@ int cmd_cp2fs(int argcnt, char *argvec[])
 		return (-1);
 	}
 
-	testfs_fd = b_open(dest, O_WRONLY | O_CREAT | O_TRUNC);
-	linux_fd = open(src, O_RDONLY);
-	do
+	CopyJob *job = malloc(sizeof(CopyJob));
+	if (job == NULL)
 	{
-		readcnt = read(linux_fd, buf, BUFFERLEN);
-		//printf("cmd_cp2fs readcnt:%d\n", readcnt);
-		b_write(testfs_fd, buf, readcnt);
-		//printf("cmd_cp2fs: after b_write\n");
-	} while (readcnt == BUFFERLEN);
-	b_close(testfs_fd);
-	close(linux_fd);
+		fprintf(stderr, "cp2fs: malloc failed\n");
+		return -1;
+	}
+	strncpy(job->src, src, sizeof(job->src) - 1);
+	job->src[sizeof(job->src) - 1] = '\0';
+	strncpy(job->dest, dest, sizeof(job->dest) - 1);
+	job->dest[sizeof(job->dest) - 1] = '\0';
+
+	pthread_t tid;
+	pthread_create(&tid, NULL, cp2fs_worker, job);
+	register_job(tid);
+	printf("[background] cp2fs: copying '%s'...\n", src);
 #endif
 	return 0;
 }
@@ -968,6 +1086,7 @@ int main(int argc, char *argv[])
 		{
 			free(cmd);
 			cmd = NULL;
+			join_all_jobs();
 			exitFileSystem();
 			closePartitionSystem();
 			// exit while loop and terminate shell
