@@ -87,64 +87,6 @@ b_io_fd b_getFCB()
 // O_RDONLY (0), O_WRONLY (1), or O_RDWR (2)
 b_io_fd b_open(char *filename, int flags)
 {
-	/*
-	 add a field to ppinfo - isFile
-
-So, in b_open, what cases do I need?
-1. If path is an existing file - done
-2. If path is a valid pathname up until the 2nd to last element, which does not exist and will be the name for the new file created by touch.
-3. If path is not a valid pathname up until the last element, or up until the second to last element?? clarify.
-
-what's my current case? If the file exists.
-
-what if b_open somehow edited the path for parsePath to process by trimming it?
-
-Check if the full path is a directory. - done
-- If so, return not a file error.
-Check if the full path is an existing file with parsePath - done
-- If so, create the fcb in fcbArray and return the fd (index) of it.
-
-If neither of the above, check if the path until 2nd to last element is a valid directory:
-Pass a trimmed path into parsePath. No handling for absolute/relative needed here.
-	How:
-	char *pathCopy = malloc(CWD_SIZE);
-	if (path == NULL)
-	{
-		fprintf(stderr, "path is null\n");
-		return -1;
-	}
-	strcpy(pathCopy, filename);
-
-	if (pathCopy == NULL)
-	{
-		perror("strcpy failed");
-		return -1;
-	}
-
-	char *saveptr;
-	char *token1 = strtok_r(pathCopy, '/', &saveptr);
-
-	char *token2;
-
-start do loop.
-	Will it ever just be one token? Yes, in this case, create the file in cwd.
-
-	Otherwise, loop through. Keep pulling token2 from strtok_r.
-	If token2 is NOT NULL:
-		We add '/' and token1 to our new path with strcat.
-		Keep looping.
-	If token2 is NULL:
-		we do NOT add token1 to our new path - token1 will be the filename.
-		exit the loop
-	Call parsePath on the newPath.
-	if path is a valid directory, create a new file with token1 filename
-	in the dir, save in its parent DE.
-	Create the file itself - what does this entail? Clearing bytes? etc.
-
-
-If this path is valid and is a directory, create the new file.
-Else, return an error.
-	*/
 
 	if (filename == NULL)
 	{
@@ -318,14 +260,7 @@ Else, return an error.
 		int ppRet = parsePath(newPath, &ppi2);
 		if (ppRet != -1)
 		{
-			/*
-			TODO:
-				ppi2.parent[ppi2.lei] IS the parent
-				Create a DE to describe the child file in this parent.
-				LBAlocation -1 and size will be 0.
-				LBAlocation and size to be updated with cat or other methods that fill the file.
 
-			*/
 			DE *parentOfFile = loadDirLBA(ppi2.parent[ppi2.lei].LBAlocation,
 										  ppi2.parent[ppi2.lei].dirNumBlocks);
 
@@ -395,45 +330,6 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 	return (0); // Change this
 }
 
-// Interface to write function
-/*
-Write is going to write count bytes from the user's buffer into
-the file at fd's location.
-
-Confirm: what's fcb.buf used for? Why is it separate from the
-user's buffer, passed into the function?
-fcb tracks reading for a specific file - its buffer is malloced for block_size bytes.
-So if you want to track where an FD is regarding a file,
-use/update:
-fcbArray[].index,
-fcbArray[].flags (at open),
-fcbArray[].blockTracker,
-fcbArray[].startBlock (stays the same but use as reference)
-fcbArray[].fileSize,
-startBlock and fileSize can be used together to determine blocks,
-eof when numBytesRead == fileSize.
-
-PICKUP: refactor fcbArray in conjunction with write pseudocode.
-
-So what are the steps to write from a buffer into an fd?
-Write as many bytes from the buffer into the fd as you can.
-How big can the buffer potentially be? "Infinitely" long, but we
-know the count requested.
-
-We know fd.buf is blocksize bytes (512).
-
-Count can either be: <= blocksize or > blocksize.
-
-If count <= blocksize:
-write count bytes from buffer to fd
-update fd's index = index + count
-is index used for reading, writing, or both
-to change the index, you'd call b_seek.
-^what if index was at 200 and count was blocksize? you'd fill
-fd's buffer past blocksize. Instead, need to check index + count
-and handle any spillage/multiple block situations.
-
-*/
 int b_write(b_io_fd fd, char *buffer, int count)
 {
 	if (fcbArray[fd].flags == O_RDONLY)
@@ -506,29 +402,9 @@ int b_write(b_io_fd fd, char *buffer, int count)
 		return writeCount;
 	}
 
-	// DEBUG PICKUP: Ensure file sizes update properly from below and onwards.
 	else
 	{
-		/*
-		If we'll need to write multiple times.
-
-		Cases:
-		1.
-		1a. index > 0, fill up fcb.buf, write first block to disk.
-		1b. Then check how many bytes left to write.
-		If >= 1 block left, write as many
-		as possible straight to disk with an lbawrite call.
-		1c. Write any left over bytes to buf and zero out the rest.
-		LBAwrite that last block.
-
-
-
-		*/
-
-		/*
-		If index > 0, write enough bytes to increment block and reset index to 0.
-		Subtract these bytes from writeCount.
-		*/
+		
 		if (fcbArray[fd].index > 0)
 		{
 			memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer,
@@ -559,8 +435,6 @@ int b_write(b_io_fd fd, char *buffer, int count)
 		/*
 		Write any remaining bytes using fcb buf
 		use memcpy.
-		Starting location from buffer will be?
-		buffer + (count - writeCount)
 		*/
 		if (writeCount / vcb->block_size < 1 && !(writeCount <= 0))
 		{
