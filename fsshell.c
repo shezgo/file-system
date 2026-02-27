@@ -378,7 +378,7 @@ int cmd_mv(int argcnt, char *argvec[])
 
 		ppinfo destPpi;
 		int destRet = parsePath(dest, &destPpi);
-		//If dest doesn't exist, rename src to dest.
+		// If dest doesn't exist, rename src to dest.
 		if (destRet == -1)
 		{
 			strcpy(srcPpi.parent[srcPpi.lei].name, argvec[2]); // dest, src
@@ -388,21 +388,20 @@ int cmd_mv(int argcnt, char *argvec[])
 			}
 		}
 
-		if(destRet == 0)
+		if (destRet == 0)
 		{
-			if((entryIsDir(destPpi.parent, destPpi.lei))!= 1)
+			if ((entryIsDir(destPpi.parent, destPpi.lei)) != 1)
 			{
 				fprintf(stderr, "[dest] cannot be a file.\n");
 				return -1;
 			}
 
-			//By here, dest exists and is a directory
+			// By here, dest exists and is a directory
 			DE *destDir = loadDirLBA(
 				destPpi.parent[destPpi.lei].dirNumBlocks,
-				destPpi.parent[destPpi.lei].LBAlocation
-			);
+				destPpi.parent[destPpi.lei].LBAlocation);
 
-			if(findNameInDir(destDir, src) != -1)
+			if (findNameInDir(destDir, src) != -1)
 			{
 				fprintf(stderr, "Entry with name already exists in dest folder.\n");
 				free(destDir);
@@ -410,23 +409,23 @@ int cmd_mv(int argcnt, char *argvec[])
 			}
 
 			int newLei = findUnusedDE(destDir);
-			if(newLei == -1)
+			if (newLei == -1)
 			{
 				fprintf(stderr, "No unused DEs in dest parent.\n");
 				free(destDir);
 				return -1;
 			}
 
-			//Assign all the metadata in new parent 
-			// 2 cases - src is file or src is dir. Handle file first.
+			// Assign all the metadata in new parent
+			//  2 cases - src is file or src is dir. Handle file first.
 
-			//If it's a file, edit its parent's DE of it to be null,
-			//and set new parent's DE[newLei] to have its data.
+			// If it's a file, edit its parent's DE of it to be null,
+			// and set new parent's DE[newLei] to have its data.
 
 			/*
 				If it's a directory, you also have to edit its own
 				. and .. entries.
-			
+
 			*/
 
 			DE *srcDE = &srcPpi.parent[srcPpi.lei];
@@ -442,23 +441,22 @@ int cmd_mv(int argcnt, char *argvec[])
 			destDir[newLei].isDirectory = srcDE->isDirectory;
 			destDir[newLei].dirNumBlocks = srcDE->dirNumBlocks;
 
-
-			if(srcPpi.isFile == 0)
+			if (srcPpi.isFile == 0)
 			{
-				//Then source is a directory. 
-				//Load the directory and edit its .. dir
+				// Then source is a directory.
+				// Load the directory and edit its .. dir
 				DE *srcDir = loadDirLBA(srcDE->dirNumBlocks,
-				srcDE->LBAlocation);
+										srcDE->LBAlocation);
 				srcDir[1].dirNumBlocks = destDir[0].dirNumBlocks;
 				srcDir[1].isDirectory = destDir[0].isDirectory;
 				srcDir[1].lastModified = destDir[0].lastModified;
 				srcDir[1].lastAccessed = destDir[0].lastAccessed;
 				srcDir[1].timeCreation = destDir[0].timeCreation;
 				strcpy(srcDir[1].name, destDir[0].name);
-				srcDir[1].LBAindex = destDir[0].LBAindex; 
+				srcDir[1].LBAindex = destDir[0].LBAindex;
 				srcDir[1].LBAlocation = destDir[0].LBAlocation;
 				srcDir[1].size = destDir[0].size;
-				if(saveDir(srcDir) == -1)
+				if (saveDir(srcDir) == -1)
 				{
 					fprintf(stderr, "srcDir saveDir error\n");
 					free(srcDir);
@@ -466,8 +464,7 @@ int cmd_mv(int argcnt, char *argvec[])
 				free(srcDir);
 			}
 
-
-			//Now reset original parent's DE about its lost child
+			// Now reset original parent's DE about its lost child
 			srcDE->size = -1;
 			srcDE->LBAlocation = -1;
 			srcDE->LBAindex = -1;
@@ -484,14 +481,12 @@ int cmd_mv(int argcnt, char *argvec[])
 				free(destDir);
 			}
 
-			if(saveDir(srcPpi.parent) == -1)
+			if (saveDir(srcPpi.parent) == -1)
 			{
 				fprintf(stderr, "src saveDir error\n");
 			}
 			free(destDir);
-
 		}
-
 	}
 	return -99;
 
@@ -532,8 +527,8 @@ int cmd_rm(int argcnt, char *argvec[])
 	}
 
 	char *path = argvec[1];
-	//printf("cmd_rm: argvec[1]:%s\n", argvec[1]);
-	// must determine if file or directory
+	// printf("cmd_rm: argvec[1]:%s\n", argvec[1]);
+	//  must determine if file or directory
 	if (fs_isDir(path))
 	{
 		return (fs_rmdir(path));
@@ -554,7 +549,7 @@ int cmd_rm(int argcnt, char *argvec[])
 
 #define MAX_JOBS 8
 
-typedef struct 
+typedef struct
 {
 	char src[DIRMAX_LEN];
 	char dest[DIRMAX_LEN];
@@ -564,29 +559,12 @@ static pthread_t activeJobs[MAX_JOBS];
 static _Atomic int jobCount = 0;
 static pthread_mutex_t jobsMutex = PTHREAD_MUTEX_INITIALIZER;
 
-
-static void register_job(pthread_t tid)
-{
-	pthread_mutex_lock(&jobsMutex);
-	if (jobCount < MAX_JOBS)
-	{
-		activeJobs[jobCount] = tid;
-		jobCount++;
-	}
-	else
-	{
-		fprintf(stderr, "MAX_JOBS reached, cannot register thread.\n");
-	}
-
-	pthread_mutex_unlock(&jobsMutex);
-}
-
 static void join_all_jobs()
 {
-    if (jobCount > 0)
-        printf("Waiting for %d background job(s) to finish...\n", jobCount);
-    while (jobCount> 0)
-        usleep(10000);  // poll every 10ms
+	if (jobCount > 0)
+		printf("Waiting for %d background job(s) to finish...\n", jobCount);
+	while (jobCount > 0)
+		usleep(10000); // poll every 10ms
 }
 
 static void *cp2fs_worker(void *arg)
@@ -599,8 +577,8 @@ static void *cp2fs_worker(void *arg)
 	if (linux_fd < 0)
 	{
 		fprintf(stderr, "cp2fs could not open Linux file '%s'\n", job->src);
-		rl_on_new_line();   // tells readline the cursor moved to a new line
-		rl_redisplay();     // redraws the prompt and any partially-typed input
+		rl_on_new_line(); // tells readline the cursor moved to a new line
+		rl_redisplay();	  // redraws the prompt and any partially-typed input
 		free(job);
 		jobCount--;
 		return NULL;
@@ -610,8 +588,8 @@ static void *cp2fs_worker(void *arg)
 	if (fs_fd < 0)
 	{
 		fprintf(stderr, "cp2fs could not open or create fs file '%s'\n", job->dest);
-		rl_on_new_line();   // tells readline the cursor moved to a new line
-		rl_redisplay();     // redraws the prompt and any partially-typed input
+		rl_on_new_line(); // tells readline the cursor moved to a new line
+		rl_redisplay();	  // redraws the prompt and any partially-typed input
 		close(linux_fd);
 		free(job);
 		jobCount--;
@@ -626,10 +604,10 @@ static void *cp2fs_worker(void *arg)
 
 	b_close(fs_fd);
 	close(linux_fd);
-	//Since it's a background task, want notice of completion.
+	// Since it's a background task, want notice of completion.
 	printf("\n[done] cp2fs: '%s' -> '%s'\n", job->src, job->dest);
-	rl_on_new_line();   // tells readline the cursor moved to a new line
-	rl_redisplay();     // redraws the prompt and any partially-typed input
+	rl_on_new_line(); // tells readline the cursor moved to a new line
+	rl_redisplay();	  // redraws the prompt and any partially-typed input
 	free(job);
 	jobCount--;
 	return NULL;
@@ -645,8 +623,8 @@ static void *cp2l_worker(void *arg)
 	if (fs_fd < 0)
 	{
 		fprintf(stderr, "cp2l could not open fs file '%s'\n", job->src);
-		rl_on_new_line();   // tells readline the cursor moved to a new line
-		rl_redisplay();     // redraws the prompt and any partially-typed input
+		rl_on_new_line(); // tells readline the cursor moved to a new line
+		rl_redisplay();	  // redraws the prompt and any partially-typed input
 		free(job);
 		jobCount--;
 		return NULL;
@@ -656,8 +634,8 @@ static void *cp2l_worker(void *arg)
 	if (linux_fd < 0)
 	{
 		fprintf(stderr, "cp2l could not open/create Linux file '%s'\n", job->dest);
-		rl_on_new_line();   // tells readline the cursor moved to a new line
-		rl_redisplay();     // redraws the prompt and any partially-typed input
+		rl_on_new_line(); // tells readline the cursor moved to a new line
+		rl_redisplay();	  // redraws the prompt and any partially-typed input
 		b_close(fs_fd);
 		free(job);
 		jobCount--;
@@ -672,10 +650,10 @@ static void *cp2l_worker(void *arg)
 
 	b_close(fs_fd);
 	close(linux_fd);
-	//Since it's a background task, want notice of completion.
+	// Since it's a background task, want notice of completion.
 	printf("\n[done] cp2l: '%s' -> '%s'\n", job->src, job->dest);
-	rl_on_new_line();   // tells readline the cursor moved to a new line
-	rl_redisplay();     // redraws the prompt and any partially-typed input
+	rl_on_new_line(); // tells readline the cursor moved to a new line
+	rl_redisplay();	  // redraws the prompt and any partially-typed input
 	free(job);
 	jobCount--;
 	return NULL;
@@ -689,7 +667,6 @@ int cmd_cp2l(int argcnt, char *argvec[])
 
 	char *src;
 	char *dest;
-
 
 	switch (argcnt)
 	{
@@ -720,10 +697,19 @@ int cmd_cp2l(int argcnt, char *argvec[])
 	job->dest[sizeof(job->dest) - 1] = '\0';
 
 	pthread_t tid;
-	jobCount++;
-	pthread_create(&tid, NULL, cp2l_worker, job);
-	pthread_detach(tid);
-	printf("[background] cp2l: copying '%s'...\n", src);
+	if (jobCount >= MAX_JOBS)
+	{
+		fprintf(stderr, "Too many background jobs running. Try again shortly.\n");
+		free(job);
+		return -1;
+	}
+	else
+	{
+		jobCount++;
+		pthread_create(&tid, NULL, cp2l_worker, job);
+		pthread_detach(tid);
+		printf("[background] cp2l: copying '%s'...\n", src);
+	}
 #endif
 	return 0;
 }
@@ -767,10 +753,19 @@ int cmd_cp2fs(int argcnt, char *argvec[])
 	job->dest[sizeof(job->dest) - 1] = '\0';
 
 	pthread_t tid;
-	jobCount++;
-	pthread_create(&tid, NULL, cp2fs_worker, job);
-	pthread_detach(tid);
-	printf("[background] cp2fs: copying '%s'...\n", src);
+	if (jobCount >= MAX_JOBS)
+	{
+		fprintf(stderr, "Too many background jobs running. Try again shortly.\n");
+		free(job);
+		return -1;
+	}
+	else
+	{
+		jobCount++;
+		pthread_create(&tid, NULL, cp2fs_worker, job);
+		pthread_detach(tid);
+		printf("[background] cp2fs: copying '%s'...\n", src);
+	}
 #endif
 	return 0;
 }
