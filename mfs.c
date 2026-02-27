@@ -497,18 +497,6 @@ int fs_mkdir(const char *path, mode_t mode)
         return -1;
     }
 
-    /*
-        printf("ppi.parent time creation:%ld\n", ppi.parent->timeCreation);
-        memcpy(&(ppi.parent[x]), newDir, sizeof(DE)); // this is supposed to set newDir to ppi.parent[x].
-        // then ppi.le is supposed to be the name...but ppi.le might not be correct.
-        printf("from fs_mkdir ppi.le:%s\n", ppi.le);
-        strncpy(ppi.parent[x].name, ppi.le, sizeof(ppi.parent[x].name) - 1);
-        ppi.parent[x].name[sizeof(ppi.parent[x].name) - 1] = '\0';
-        printf("from fs_mkdir ppi.parent[x].name:%s\n", ppi.parent[x].name);
-
-
-        int uDRet = updateDELBA(newDir);
-        */
     freeIfNotNeedDir(newDir);
 
     return 0;
@@ -551,15 +539,7 @@ fdDir *fs_opendir(const char *pathname)
 
     // x counts the number of DEs in thisDir
     int cntEntries = thisDir->size / sizeof(DE);
-    /*int x = 0;
 
-    while ((thisDir[x].name[0] == '\0') && x < cntEntries)
-    {
-        ++x;
-    }
-    if (x < cntEntries)
-    {
-        */
     fdDir *fdDirIP = malloc(sizeof(fdDir));
 
     if (fdDirIP == NULL)
@@ -586,7 +566,7 @@ fdDir *fs_opendir(const char *pathname)
     {
         ((char *)fdDirIP->di)[i] = 0;
     }
-    // DEBUG open doesn't actually return a name yet
+  
     fdDirIP->di->d_reclen = sizeof(struct fs_diriteminfo);
     fdDirIP->di->fileType = thisDir->isDirectory == 1 ? FT_DIRECTORY : FT_REGFILE;
     strncpy(fdDirIP->di->d_name, (ppi.parent[ppi.lei]).name, 255);
@@ -596,12 +576,7 @@ fdDir *fs_opendir(const char *pathname)
     fdDirIP->dirEntryPosition = 0;
 
     return fdDirIP;
-    /*}
-    else
-    {
-        return NULL;
-    }
-    */
+
 }
 //*************************************************************************************************
 struct fs_diriteminfo *fs_readdir(fdDir *dirp)
@@ -703,10 +678,7 @@ int fs_setcwd(char *pathname)
             strcpy(cwdName, "/");
             return 0;
         }
-        // Trim the last element from ppi.pathArray? or just let resolvePath handle
-        // PICKUP HERE
-        // strcpy(cwdName, cwdGlobal[0].name);
-        // return 0;
+
 
         char *resolvedPath = resolvePath(ppi.pathArray, ppi.maxElemIndex);
 
@@ -947,22 +919,6 @@ int fs_delete(char *filename)
 // Removes an empty directory. Returns 0 if success, -1 if failure.
 int fs_rmdir(const char *pathname)
 {
-    /*
-    rmdir() removes the directory represented by ‘pathname’ if it is empty.
-    IF the directory is not empty then this function will not succeed.
-    Use parsePath on the pathname
-    Case 1: parsePath returns -2, Root case?
-    print error and return -1
-    Case 2: parsePath returns 0 for success and has valid ppi->lei
-    Case 3: returns 0 but invalid ppi->lei,
-    Case 4: parsePath returns -1 for failure meaning invalid pathname
-
-    If parsePath succeeds:
-    check if the directory is empty. If so,
-    delete the directory and its metadata in parent.
-
-    If the directory is not empty, error message.
-    */
     if (pathname == NULL)
     {
         fprintf(stderr, "Path is null\n");
@@ -998,24 +954,7 @@ int fs_rmdir(const char *pathname)
 
     if (parseFlag == 0)
     {
-        /*
-        Check if ppi.parent[ppi.lei] points to a dir or file.
-        the last element in path will be at parent[lei].
-        If it's a file, return error.
-        If it's a directory:
-        -Load the directory into memory (by opening it)
-        -If it has any DEs in any index
-            - print "directory is not empty" error
-            - Free this directory from memory.
-            - return -1
-        -If it's empty, delete itself and its metadata in its parent.
-            -Write empty buffer to disk at parent[lei].lbalocation
-            -Reset parent[lei].attributes
-            -Rewrite parent to disk at parent[0].lbalocation
-            -Free dir
 
-            any bm updates needed?
-        */
         if (ppi.parent[ppi.lei].isDirectory == 0)
         {
             fprintf(stderr, "path is a file, not directory.\n");

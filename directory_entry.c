@@ -155,11 +155,6 @@ DE *loadDirLBA(int numBlocks, int startBlock)
     return (DE *)buffer;
 }
 
-// Update a directory on disk. Returns 1 on success, -1 if failed.
-// This should ONLY update a DE on disk from an entire loaded directory in memory
-// PICKUP/DEBUG: Can I ensure this^ with reading into a buffer and freeing within this method?
-//
-
 void *print5DEs(DE *dir)
 {
     for (int i = 0; i < 5; i++)
