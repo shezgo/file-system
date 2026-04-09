@@ -77,6 +77,7 @@ void b_init()
 // receiving the same index.
 b_io_fd b_getFCB()
 {
+	pthread_mutex_lock(&fcb_mutex);
 	for (int i = 0; i < MAXFCBS; i++)
 	{
 		if (fcbArray[i].buf == NULL)
