@@ -217,7 +217,8 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t *bm_bitmap)
     int blocksToBitsInBytes = (fsNumBlocks + 7) / 8;
 
     bm->fsNumBlocks = fsNumBlocks;
-    // Below operation works because of int division.
+
+    // Multiplies the number of blocks needed by blockSize to get the full byte-size of the bitmap.
     int roundedBytes = ((blocksToBitsInBytes + blockSize - 1) / blockSize) * blockSize;
 
     //IF file system has not been initialized yet, this function will receive null as a parameter.
@@ -239,10 +240,13 @@ Bitmap *initBitmap(int fsNumBlocks, int blockSize, uint8_t *bm_bitmap)
             bm->bitmap[i] = 0;
         }
  
-        /*Set the bits that we know are going to be occupied. This includes the VCB in logical b0,
+        /*Set the bits that we know are going to be occupied. This includes the VCB in logical block 0,
         but physical block 0 contains Professor's partition table. Also set blocks needed
-        to store the free space map.
-        Per "steps for milestone 1 pdf" do not free the bitmap buffer. Keep it in memory and
+        to store the free space map. 
+        When using LBAwrite, block 0 refers to logical block 0.
+        When using hexdump, block 0 refers to physical block 0 which displays the partition table.
+        
+        Keep the bitmap buffer in memory, never freeing it, and
         LBAwrite whenever you manipulate the buffer. */
 
         bm->mapNumBlocks = (blocksToBitsInBytes + blockSize - 1) / blockSize;
