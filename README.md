@@ -29,9 +29,16 @@ When a file or directory needs space, `fsAlloc(n)` performs a **linear first-fit
 
 This means every allocation is a single contiguous region on disk — there is no fragmentation within a single file or directory, and no indirection tables or extent lists. The tradeoff is that after repeated creates and deletes, free space can become fragmented into gaps smaller than 5 or 10 blocks, potentially causing allocations to fail even when total free space is sufficient. 
 
-This design decision was made weighing the time and energy costs of implementing extents against creating other projects for potential employers, as I would need to refactor the free space allocation system, bitmap functions, and directory entry structure - additionally, each file would also need an additional black to store its extent list, and more. However, doing so would both improve space efficiency and size caps.
-
 Every bitmap change is flushed to disk immediately, and the Volume Control Block's free block count is updated in tandem.
+
+This design decision of fixed size contiguous allocation was weighed against dynamic allocation of one block at a time triggered by writing, in order for a file to guarantee a testable minimum size. Time and energy were the primary concern, as the tradeoff was working on other projects for more employability.
+
+If I were to upgrade this, two options are:
+1. Implementing extents (and extent trees) - each directory entry would have a fixed size array of extents, each tracking the start block and number of blocks. If more than the fixed size of extents are required, it would upgade to an extent tree for more space.
+2. Implementing a FAT (file allocation table) - this would also replace the current use of the free space bitmap. The FAT would be stored on disk in place of the current bitmap, large enough to accommodate the block-volume size. Each index would contain a pointer to the next block, with unused blocks containing a sentinel value IE 0 for unused, or -1 for end of file.
+
+Because reading from an index in a file with FAT would require stepping through the entire chain from the beginning of the file, extents typically allow for faster access because computations can be done for index-based access. Also, implementing extents would be more efficient in memory overhead with the free space bitmap, as space is tracked by bits rather than ints. Writing to/reading from disk can also be done in larger chunks since there are contiguous segments for each extent.
+
 
 ---
 
