@@ -40,6 +40,7 @@ typedef struct b_fcb
 	int fileSize;			 // The size of the file
 	DE *parent;				 // The parent DE of the file
 	int parentLei;			 // The access index within the parent DE that points to this file.
+	int inUse;				 // 1 if slot is claimed (even before buf is set), 0 if free
 
 } b_fcb;
 
@@ -55,6 +56,7 @@ void b_init()
 	for (int i = 0; i < MAXFCBS; i++)
 	{
 		fcbArray[i].buf = NULL; // indicates a free fcbArray
+		fcbArray[i].inUse = 0;
 		strcpy(fcbArray[i].fileName, "");
 		fcbArray[i].buflen = -1;
 		fcbArray[i].index = -1;
@@ -80,9 +82,9 @@ b_io_fd b_getFCB()
 	pthread_mutex_lock(&fcb_mutex);
 	for (int i = 0; i < MAXFCBS; i++)
 	{
-		if (fcbArray[i].buf == NULL)
+		if (fcbArray[i].inUse == 0)
 		{
-			fcbArray[i].buf = (char *)1; // sentinel: slot claimed, real buf set in b_open
+			fcbArray[i].inUse = 1;
 			pthread_mutex_unlock(&fcb_mutex);
 			return i;
 		}
@@ -614,6 +616,7 @@ int b_close(b_io_fd fd)
 	int i = fd;
 	free(fcbArray[i].buf);
 	fcbArray[i].buf = NULL;			  // indicates a free fcbArray
+	fcbArray[i].inUse = 0;
 	strcpy(fcbArray[i].fileName, ""); // same as fcbArray[i].fileName[0] = '\0';
 	fcbArray[i].buflen = -1;
 	fcbArray[i].index = -1;
